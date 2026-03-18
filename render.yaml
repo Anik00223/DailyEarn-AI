@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: idea-generator-api
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --workers 3 --worker-class sync --timeout 60 app:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: JWT_SECRET
+        scope: build
+      - key: FLASK_SECRET_KEY
+        scope: build
+      - key: GOOGLE_API_KEY
+        scope: build
+      - key: ANTHROPIC_API_KEY
+        scope: build

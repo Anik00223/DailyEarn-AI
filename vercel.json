@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "public": true,
+  "buildCommand": "npm install",
+  "outputDirectory": "public",
+  "env": {
+    "VITE_API_URL": "@vite-api-url"
+  }
+}

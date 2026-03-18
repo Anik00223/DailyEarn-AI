@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(ls:*)",
+      "Bash(pip install:*)",
+      "Bash(.venv/Scripts/python.exe -m pip install flask flask-cors bcrypt PyJWT flask-limiter requests 2>&1 | tail -5)",
+      "Bash(.venv/Scripts/python.exe test_api.py)"
+    ]
+  }
+}
