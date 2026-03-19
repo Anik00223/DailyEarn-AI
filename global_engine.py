@@ -48,9 +48,9 @@ def init_engines():
     bkey = os.environ.get('BYTEZ_API_KEY', '')
     if bkey:
         bytez_api_key = bkey
-        print('  ✅ Bytez → Claude Opus 4.5 initialized (PRIMARY)')
+        print('  [OK] Bytez -> Claude Opus 4.5 initialized (PRIMARY)')
     else:
-        print('  ❌ No BYTEZ_API_KEY — Claude engine disabled')
+        print('  [ERROR] No BYTEZ_API_KEY - Claude engine disabled')
 
     return bool(bytez_api_key)
 
