@@ -1,0 +1,30 @@
+# Staging Environment Configuration
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.staging.yml up
+
+services:
+  backend:
+    build:
+      target: production
+    environment:
+      NODE_ENV: staging
+      LOG_LEVEL: info
+      CORS_ORIGIN: https://staging.dailyearnai.com
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    environment:
+      DOMAIN: staging.dailyearnai.com
+    volumes:
+      - ./nginx/conf.staging.dailyearnai.com:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/snippets/ssl-staging.conf:/etc/nginx/snippets/ssl.conf:ro
+      - ./nginx/snippets/letsencrypt-staging.conf:/etc/nginx/snippets/letsencrypt.conf:ro
+
+profiles:
+  - staging

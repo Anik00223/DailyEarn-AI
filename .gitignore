@@ -1,31 +1,38 @@
+# Environment
 .env
-__pycache__/
-*.pyc
-*.pyo
-.DS_Store
-venv/
-env/
+.env.local
+.env.*.local
+
+# Dependencies
 node_modules/
 .venv/
+venv/
+
+# Build output
+dist/
+backend/dist/
+frontend/dist/
+
+# IDE
 .vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+*.pyc
+__pycache__/
+
+# Database
 *.db
-debug_out.txt
-err.txt
+drizzle/meta/
+
+# Test & Coverage
+coverage/
+
+# Logs
+*.log
+server_error.log
 error.log
-package-lock.json
-package.json
-gemini-engine.js
-convert_js_to_py.py
-debug.py
-fix_data_files.py
-test_api.py
-test_engine.js
-local-data.js
-city_data.py
-country_data.py
-database.py
-gemini_engine.py
-idea_engine.py
-local_data.py
-middleware/
-public/

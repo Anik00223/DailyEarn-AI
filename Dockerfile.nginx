@@ -1,0 +1,25 @@
+# Nginx Dockerfile for DailyEarn AI
+FROM nginx:alpine
+
+# Install certbot for SSL renewal
+RUN apk add --no-cache \
+    certbot \
+    certbot-nginx \
+    bash \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+# Copy nginx configurations
+COPY nginx/snippets /etc/nginx/snippets/
+COPY nginx/conf.d /etc/nginx/conf.d/
+
+# Create directories
+RUN mkdir -p /var/www/html /etc/nginx/snippets /var/log/nginx
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
+EXPOSE 80 443
+
+CMD ["nginx", "-g", "daemon off;"]

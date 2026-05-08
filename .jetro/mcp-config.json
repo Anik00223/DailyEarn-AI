@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "jetro": {
+      "command": "C:\\Users\\dasa8\\.jetro\\runtime\\node-win32-x64.exe",
+      "args": [
+        "C:\\Users\\dasa8\\.jetro\\mcp-server\\index.js"
+      ],
+      "env": {
+        "JET_WORKSPACE": "c:\\Users\\dasa8\\OneDrive\\Desktop\\New folder (3)",
+        "JET_API_URL": "https://api.jetro.ai",
+        "JET_JWT": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjJiMzZhYjQxYTczOTJlMTRlNjM1ZmRlM2M2YWYwOWZlYmFhM2YyZDYiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vamV0cm8tY2RhZWYiLCJhdWQiOiJqZXRyby1jZGFlZiIsImF1dGhfdGltZSI6MTc3NzQ1MDI0NiwidXNlcl9pZCI6Ino1Wk9NNWZzOUpRUmF4M0lXS1dGVWdBV2FndDIiLCJzdWIiOiJ6NVpPTTVmczlKUVJheDNJV0tXRlVnQVdhZ3QyIiwiaWF0IjoxNzc3OTI0NDQ1LCJleHAiOjE3Nzc5MjgwNDUsImVtYWlsIjoiYW5pa2Q3NDIzQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImFuaWtkNzQyM0BnbWFpbC5jb20iXX0sInNpZ25faW5fcHJvdmlkZXIiOiJwYXNzd29yZCJ9fQ.tLw_-U39ZF_Umgz1iXoi_QlqaSKYhAIFj3LbVYfHQR3dgiYTU6_vtPYeXODVeoPJV9FVN38zeMegxjoW1PUDszhg7B_qcN9yvRpKyrft8XbiykUT2OCtGTaXqc4TWWiqBKaJe2W8NezS-7G2dDBJfF6oqH8dQn1b2s_KM2hUQtrMi9lG2C1rnVhklZ7s1NXE0NkyH3bFgK7OWAE-KjXycZ3QNVimEMLf9FdRhigtLf2lTDJ4o6Gp09spWOxTBZVn_ApVrRKAKGTB32fO-Z9vFDpebZkZ-qflH-F7M3scMklGVp67-yAIAxogCvL4KJPcXPJ1VDmIcfzVdPS_BFTm4Q",
+        "PATH": "C:\\Users\\dasa8\\.jetro\\runtime;C:\\Program Files\\Common Files\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\msys64\\ucrt64\\bin;C:\\Program Files\\NVIDIA Corporation\\NVIDIA app\\NvDLISR;C:\\Program Files\\Git\\cmd;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\cursor\\resources\\app\\bin;C:\\Users\\dasa8\\.local\\bin\\claude.exe;C:\\Program Files\\nodejs\\;C:\\Program Files\\CMake\\bin;C:\\Users\\dasa8\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\;C:\\Users\\dasa8\\AppData\\Local\\Programs\\Python\\Python313\\;C:\\Users\\dasa8\\AppData\\Local\\Microsoft\\WindowsApps;C:\\MinGW\\bin;C:\\Users\\dasa8\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Program Files\\JetBrains\\IntelliJ IDEA 2024.3.2.1\\bin;;C:\\Program Files\\JetBrains\\IntelliJ IDEA Community Edition 2024.3.2.1\\bin;;C:\\Users\\dasa8\\AppData\\Local\\Programs\\Antigravity\\bin;C:\\Users\\dasa8\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ngrok.Ngrok_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\\Users\\dasa8\\AppData\\Local\\Programs\\Ollama;C:\\users\\dasa8\\.local\\bin;C:\\users\\dasa8\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin;C:\\Users\\dasa8\\AppData\\Roaming\\npm;C:\\Users\\dasa8\\.lmstudio\\bin;C:\\Users\\dasa8\\AppData\\Local\\Microsoft\\WinGet\\Packages\\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\\Users\\dasa8\\AppData\\Local\\Microsoft\\WinGet\\Packages\\GitHub.Copilot_Microsoft.Winget.Source_8wekyb3d8bbwe;"
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# SSL Certificate Setup
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.ssl-setup.yml --profile ssl-setup up
+
+services:
+  certbot:
+    image: certbot/certbot:latest
+    container_name: dailyearn-certbot-setup
+    command: |
+      certonly --webroot 
+      -w /var/www/html 
+      --email ${LETSENCRYPT_EMAIL}
+      -d ${DOMAIN}
+      --agree-tos 
+      --non-interactive
+    volumes:
+      - certbot-data:/etc/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      nginx:
+        condition: service_healthy
+
+volumes:
+  certbot-data:
+  web-root:

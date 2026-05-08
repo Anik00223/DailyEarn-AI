@@ -1,0 +1,29 @@
+import {
+  pgTable,
+  pgEnum,
+  uuid,
+  inet,
+  jsonb,
+  timestamp,
+} from 'drizzle-orm/pg-core';
+
+export const eventTypeEnum = pgEnum('event_type', [
+  'idea_generated',
+  'idea_saved',
+  'idea_dismissed',
+  'idea_clicked',
+  'user_login',
+]);
+
+export const analytics = pgTable('analytics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id'),
+  eventType: eventTypeEnum('event_type').notNull(),
+  ideaId: uuid('idea_id'),
+  metadata: jsonb('metadata'),
+  ipAddress: inet('ip_address'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export type AnalyticsEvent = typeof analytics.$inferSelect;
+export type NewAnalyticsEvent = typeof analytics.$inferInsert;

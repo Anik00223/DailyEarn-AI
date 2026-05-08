@@ -1,166 +1,433 @@
-# Deployment Guide: Vercel (Frontend) + Render (Backend)
+# DailyEarn AI - Deployment Guide
 
-## Project Structure
-- **Frontend (Vercel)**: Static files in `public/` folder (HTML, CSS, JS)
-- **Backend (Render)**: Flask API serving from `app.py`
-- **Database**: SQLite (will be stored on Render's persistent disk)
+Complete production-ready infrastructure configuration with Docker, Nginx, SSL, and CI/CD.
 
----
+## 📋 Overview
 
-## STEP 1: Prepare GitHub Repository
+This setup provides:
+- ✅ Docker containerization for all services
+- ✅ Nginx reverse proxy with SSL (Let's Encrypt)
+- ✅ PostgreSQL and Redis in containers
+- ✅ GitHub Actions CI/CD pipeline
+- ✅ Environment separation (dev/staging/prod)
+- ✅ Rolling deployments
+- ✅ Health checks & monitoring
+- ✅ Automated backups
+- ✅ Resource limits
+
+## 🚀 Quick Start
+
+### 1. Environment Setup
+
+**Staging setup:**
+```bash
+cp .env.staging.sample .env.staging
+# Edit .env.staging with your values
+```
+
+**Production setup:**
+```bash
+cp .env.production.sample .env.production
+# Edit .env.production with your secure values
+# DO NOT commit .env.production to git!
+```
+
+### 2. Development (Local)
 
 ```bash
-# Initialize Git if not already done
-git init
+# Start development environment
+make dev
+
+# View logs
+make logs ENVIRONMENT=dev
+
+# Stop environment
+make dev-stop
+```
+
+Access:
+- Frontend: http://localhost:5173
+- API: http://localhost:3001
+
+### 3. Deploy to Staging
+
+**Deploy staging via GitHub Actions:**
+```bash
+git checkout staging
 git add .
-git commit -m "Initial commit - ready for deployment"
-git branch -M main
+git commit -m "Deploy to staging"
+git push origin staging
 ```
 
-Push to GitHub (create a new repo on github.com first):
+**Deploy staging manually:**
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git push -u origin main
+ssh root@your-staging-server
+
+# Clone repo
+git clone https://github.com/your-username/dailyearn-ai.git
+cd dailyearn-ai
+
+# Create .env.staging (copy from GitHub secrets)
+# Deploy
+make staging
 ```
 
----
+### 4. Deploy to Production
 
-## STEP 2: Deploy Backend to Render
-
-1. Go to [render.com](https://render.com) → Sign up (GitHub recommended)
-2. Click **New** → **Web Service**
-3. Connect your GitHub repository
-4. Fill in these settings:
-   - **Name**: `idea-generator-api` (or any name)
-   - **Runtime**: Python 3
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn --workers 3 --worker-class sync --timeout 60 app:app`
-   - **Plan**: Free (or Paid)
-
-5. **Add Environment Variables** (click "Advanced"):
-   ```
-   FLASK_ENV = production
-   FLASK_SECRET_KEY = (generate random string)
-   JWT_SECRET = (generate random string)
-   GOOGLE_API_KEY = (your Google API key)
-   ANTHROPIC_API_KEY = (your Anthropic API key)
-   ```
-
-6. Click **Create Web Service** and wait for deployment
-
-**Get your Render URL**: Once deployed, you'll see something like:
-```
-https://idea-generator-api-xxxxx.onrender.com
-```
-
----
-
-## STEP 3: Deploy Frontend to Vercel
-
-1. Go to [vercel.com](https://vercel.com) → Sign up (GitHub recommended)
-2. Click **New Project** → Import your GitHub repo
-3. Configure project:
-   - **Framework**: "Other" (it's static HTML)
-   - **Root Directory**: `.` (default)
-   - **Build Command**: `npm install`
-   - **Output Directory**: `public`
-
-4. **Add Environment Variable**:
-   - **Name**: `VITE_API_URL`
-   - **Value**: `https://idea-generator-api-xxxxx.onrender.com` (your Render URL from Step 2)
-
-5. Click **Deploy**
-
-**Get your Vercel URL**: After deployment:
-```
-https://your-project-name.vercel.app
-```
-
----
-
-## STEP 4: Update CORS on Render Backend
-
-After getting your **Vercel URL**, update [app.py](app.py#L31):
-
-If you update `app.py`, the Render service will auto-redeploy:
+**Deploy production via GitHub Actions:**
 ```bash
-git add app.py
-git commit -m "Update CORS for Vercel domain"
-git push
+git checkout main
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin main --tags
 ```
 
-OR manually update in Render dashboard → Environment variables.
+**Deploy production manually:**
+```bash
+ssh root@your-production-server
 
----
+# Clone repo
+git clone https://github.com/your-username/dailyearn-ai.git
+cd dailyearn-ai
 
-## STEP 5: Test the Deployment
+# Create .env.production (copy from secure storage)
+# Deploy
+make prod
+```
 
-1. Open your **Vercel URL** in a browser
-2. Try creating an account/generating ideas
-3. Check browser DevTools Console for any errors
-4. Check Render dashboard → Logs for backend errors
+## 🔧 Configuration Files
 
----
+**Structure:**
+```
+/docker-compose.yml              # Base services
+/docker-compose.override.yml      # Development override
+/docker-compose.staging.yml       # Staging configuration
+/docker-compose.prod.yml          # Production configuration
 
-## Troubleshooting
+/backend/Dockerfile              # Backend multi-stage build
+/frontend/Dockerfile            # Frontend multi-stage build
+/Dockerfile.nginx              # Nginx container
 
-### Frontend can't reach API
-- Check that `VITE_API_URL` is set correctly in Vercel
-- Check CORS settings in [app.py](app.py#L31) includes your Vercel domain
-- Open DevTools → Network tab to see the API requests
+/nginx/conf.staging.dailyearnai.com   # Staging Nginx config
+/nginx/conf.production.dailyearnai.com # Production Nginx config
+/nginx/snippets/               # Reusable Nginx snippets
 
-### Render says "Service Failed"
-- Check logs: Render dashboard → Logs
-- Make sure `requirements.txt` has all dependencies
-- Verify environment variables are set
+/.env.staging.sample            # Staging env template
+/.env.production.sample         # Production env template
 
-### Database not persisting
-- Render free tier has ephemeral storage - data is lost on redeploy
-- Upgrade to Paid tier OR use [Render PostgreSQL add-on](https://render.com/docs/databases)
+/.github/workflows/
+  - ci.yml                      # Build & test on PR
+  - deploy-staging.yml          # Auto-deploy staging
+  - deploy-production.yml       # Deploy production
 
-### Import errors
-- Make sure all imports in Python files are in `requirements.txt`
-- Run locally first: `pip install -r requirements.txt`
+/scripts/
+  - deploy.sh                   # Main deployment script
+  - backup.sh                   # Create backups
+  - rollback.sh                 # Rollback to backup
+  - health-check.sh             # Health check endpoints
 
----
+/Makefile                      # Convenience commands
+```
 
-## Local Testing Before Deployment
+## 🔒 Security
 
-Test everything locally first:
+### SSL Certificates
+- Auto-provisioned via Let's Encrypt and Certbot
+- Renewed automatically
+- Staging uses staging certificate to avoid rate limits
+
+### Secrets Management
+1. **Never commit `.env.production` or `.env.staging` to git**
+2. Store secrets in:
+   - GitHub Secrets for CI/CD
+   - 1Password/Bitwarden for manual deployment
+   - VPS environment variables
+
+### Required Secrets (GitHub)
+```yaml
+# Repository secrets
+GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Auto-provided
+LETSENCRYPT_EMAIL: your-email@example.com
+
+# Staging secrets
+POSTGRES_DB_STAGING: dailyearn_staging
+POSTGRES_USER_STAGING: postgres
+POSTGRES_PASSWORD_STAGING: <secure-random-password>
+REDIS_PASSWORD_STAGING: <secure-random-password>
+JWT_ACCESS_SECRET_STAGING: <64-char-secret>
+JWT_REFRESH_SECRET_STAGING: <64-char-secret>
+GEMINI_API_KEY_STAGING: <your-api-key>
+ADMIN_SECRET_STAGING: <32-char-secret>
+SSH_PRIVATE_KEY_STAGING: <ssh-private-key>
+DROPLET_IP_STAGING: <droplet-ip-address>
+DROPLET_USER: root
+SENTRY_DSN_STAGING: <sentry-dsn>
+
+# Production secrets (different values!)
+POSTGRES_DB_PROD: dailyearn_prod
+POSTGRES_USER_PROD: postgres
+POSTGRES_PASSWORD_PROD: <different-secure-password>
+REDIS_PASSWORD_PROD: <different-secure-password>
+JWT_ACCESS_SECRET_PROD: <different-64-char-secret>
+JWT_REFRESH_SECRET_PROD: <different-64-char-secret>
+GEMINI_API_KEY_PROD: <prod-api-key>
+ADMIN_SECRET_PROD: <different-32-char-secret>
+SSH_PRIVATE_KEY_PROD: <prod-ssh-key>
+DROPLET_IP_PROD: <prod-droplet-ip>
+SENTRY_DSN_PROD: <prod-sentry-dsn>
+SLACK_WEBHOOK_URL: <optional-slack-webhook>
+```
+
+### Generating Secrets
+```bash
+# JWT secrets (64 chars)
+openssl rand -base64 64
+
+# Admin secret (32 chars)
+openssl rand -base64 32
+
+# Passwords
+openssl rand -base64 32
+
+# API keys
+# Use provider-specific generators
+```
+
+## 🦺 GitHub Actions Workflow
+
+### CI Pipeline (ci.yml)
+Triggers: Pull requests to staging/main
+Steps:
+1. Checkout code
+2. Install dependencies
+3. Run linter (TypeScript)
+4. Run tests
+5. Build Docker images
+6. Run security scan (Trivy)
+7. Upload security report
+
+### Staging Deploy (deploy-staging.yml)
+Triggers: Push to staging branch
+Steps:
+1. Build & push images with `:staging` tag
+2. Deploy to staging VPS via SSH
+3. Health check
+4. Slack notification
+
+### Production Deploy (deploy-production.yml)
+Triggers: Push to main branch (manual approval)
+Steps:
+1. Require manual approval (GitHub Environments)
+2. Backup current deployment
+3. Build & push images with `:latest` tag
+4. Deploy to production VPS via SSH
+5. Smoke tests
+6. Verify health checks
+7. Slack notification
+
+## 📊 Monitoring & Logs
+
+### Health Checks
+```bash
+# Check application health
+curl https://staging.dailyearnai.com/health
+curl https://staging.dailyearnai.com/api/health
+
+# Via Makefile
+make health ENVIRONMENT=staging
+make health ENVIRONMENT=prod
+```
+
+### Logs
+```bash
+# All logs
+docker-compose -f docker-compose.yml -f docker-compose.staging.yml logs -f
+
+# Backend only
+make logs-backend ENVIRONMENT=staging
+
+# Nginx logs
+make logs-nginx ENVIRONMENT=staging
+```
+
+### Monitoring
+- **Sentry**: Error tracking (auto-configured from secrets)
+- **Winston**: Application logs (in containers)
+- **Nginx**: Access/error logs (in nginx container)
+
+### Resource Limits
+- Backend: 512MB RAM
+- Frontend: static via Nginx
+- PostgreSQL: 1GB RAM (prod)
+- Redis: 256MB RAM
+- Nginx: 128MB RAM
+
+## 🔄 Rolling Deployment
+
+The deployment uses rolling updates:
+
+1. Start database & cache
+2. Deploy new backend version
+3. Wait for health check (~30s)
+4. Deploy new frontend
+5. Deploy nginx
+6. Verify final health
+
+Rollback: `make rollback ENVIRONMENT=staging BACKUP_FILE=<backup.tar.gz>`
+
+## 🗄️ Database
+
+### Migrations
+```bash
+# Run migrations
+docker-compose -f docker-compose.yml -f docker-compose.staging.yml exec backend npm run db:migrate
+
+# Via Makefile
+make db-migrate ENVIRONMENT=staging
+```
+
+### Backups
+```bash
+# Create backup
+make backup ENVIRONMENT=staging
+
+# Or manually
+./scripts/backup.sh staging
+
+# Backups stored in ./backups/
+# Automatically keep last 7 days
+```
+
+### Restore
+```bash
+# List backups
+ls -lh backups/
+
+# Rollback
+./scripts/rollback.sh staging backups/staging_backup_20240508_120000.tar.gz
+```
+
+## 🛠️ Development
+
+### Local Development
+```bash
+# Start all services
+make dev
+
+# Frontend only
+npm run dev
+
+# Backend only
+cd backend && npm run dev
+
+# Access at http://localhost:5173
+```
+
+### Testing
+```bash
+make test
+
+# Or individual
+cd backend && npm test
+cd frontend && npm test
+```
+
+### Docker Testing
+```bash
+# Test docker-compose configuration
+docker-compose config
+
+# Build images
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
+
+# Run with test compose file
+docker-compose -f docker-compose.yml -f docker-compose.test.yml up
+```
+
+## 🚨 Troubleshooting
+
+### Containers won't start
+```bash
+# Check logs
+make logs ENVIRONMENT=staging
+
+# Check configuration
+docker-compose -f docker-compose.yml -f docker-compose.staging.yml config
+
+# Restart services
+make staging
+```
+
+### SSL certificate issues
+```bash
+# Renew certificate manually
+docker-compose -f docker-compose.yml -f docker-compose.staging.yml run --rm certbot
+
+# Or via make
+make certbot ENVIRONMENT=staging
+```
+
+### Database connection issues
+```bash
+# Check PostgreSQL status
+docker-compose -f docker-compose.yml -f docker-compose.staging.yml exec postgres pg_isready
+
+# Connect to database
+docker-compose -f docker-compose.yml -f docker-compose.staging.yml exec postgres psql -U postgres
+```
+
+### Deployment failures
+Check:
+1. Environment variables configured
+2. Docker daemon running
+3. Sufficient disk space
+4. Network connectivity
+5. GitHub secrets configured
+
+## 📦 Useful Commands
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-npm install
+# Status
+make status ENVIRONMENT=staging
 
-# Run backend
-python app.py
+# Shell into backend
+make staging-shell
 
-# In another terminal, run frontend (if using npm server)
-npm start
+# Clean unused resources
+make clean
+
+# Validate config
+make validate-config
+
+# Nginx test
+nginx -t
+
+# Full production deployment
+make prod
+
+# View all available commands
+make help
 ```
 
-Access at `http://localhost:5000`
+## 🔗 Domain Setup
 
----
+### DNS Configuration
+Add to your DNS provider:
 
-## Environment Variables Needed
-
-See [.env.example](.env.example) for all required variables:
-- `FLASK_SECRET_KEY` - Random secret for session encryption
-- `JWT_SECRET` - Random secret for JWT tokens
-- `GOOGLE_API_KEY` - Your Google Generative AI API key
-- `ANTHROPIC_API_KEY` - Your Anthropic API key
-
-Generate secrets with:
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+A     dailyearnai.com     YOUR_DROPLET_IP
+A     www.dailyearnai.com YOUR_DROPLET_IP
+A     staging.dailyearnai.com STAGING_DROPLET_IP (if different)
 ```
 
----
+### IP Configuration
+By default, Nginx listens on ports 80 and 443:
+- HTTP (port 80): Redirects to HTTPS
+- HTTPS (port 443): SSL termination
 
-## Useful Links
-- [Render Docs](https://render.com/docs)
-- [Vercel Docs](https://vercel.com/docs)
-- [Flask Deployment](https://flask.palletsprojects.com/en/latest/deploying/)
-- [CORS in Flask](https://flask-cors.readthedocs.io/)
+## 📚 References
+
+- [Docker Compose Docs](https://docs.docker.com/compose/)
+- [Nginx Docs](https://nginx.org/en/docs/)
+- [Let's Encrypt](https://letsencrypt.org/)
+- [GitHub Actions](https://docs.github.com/en/actions)
+- [DigitalOcean Droplets](https://docs.digitalocean.com/products/droplets/)
