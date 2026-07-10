@@ -16,6 +16,7 @@ pool.on('error', (err: Error) => {
 
 export const db = drizzle(pool, { schema });
 
+export const getDbPool = (): Pool => pool;
 export const getPool = (): Pool => pool;
 
 export async function testDatabaseConnection(): Promise<boolean> {

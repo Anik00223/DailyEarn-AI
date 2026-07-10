@@ -1,7 +1,15 @@
 import Bull from 'bull';
 import { env } from '../config/env';
 
-export const ideaQueue = new Bull('idea-generation', env.REDIS_URL, {
+const redisUrl = new URL(env.REDIS_URL);
+const redisOpts = {
+  host: redisUrl.hostname || '127.0.0.1',
+  port: redisUrl.port ? parseInt(redisUrl.port, 10) : 6379,
+  password: redisUrl.password || undefined,
+};
+
+export const ideaQueue = new Bull('idea-generation', {
+  redis: redisOpts,
   defaultJobOptions: {
     attempts: 3,
     backoff: {

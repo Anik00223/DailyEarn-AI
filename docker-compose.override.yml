@@ -12,9 +12,11 @@ services:
     volumes:
       - ./backend/src:/app/src:ro
       - ./backend/package.json:/app/package.json:ro
+      - ./backend/ecosystem.config.js:/app/ecosystem.config.js:ro
     ports:
       - "9229:9229" # Debugger port
-    command: npm run dev:debug
+    command: npm run dev
+    restart: unless-stopped
 
   # Development overrides for frontend
   frontend:
@@ -28,6 +30,7 @@ services:
       - /app/node_modules
     ports:
       - "24678:24678" # Vite HMR port
+    restart: unless-stopped
 
   # Development doesn't need nginx
   nginx:

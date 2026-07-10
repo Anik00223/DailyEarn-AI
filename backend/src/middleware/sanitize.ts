@@ -31,18 +31,20 @@ export function sanitizeMiddleware(
     req.body = sanitizeObject(req.body as Record<string, unknown>);
   }
   if (req.query && typeof req.query === 'object') {
-    const sanitizedQuery: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(req.query)) {
-      sanitizedQuery[key] = sanitizeValue(value);
+    for (const key of Object.keys(req.query)) {
+      req.query[key] = sanitizeValue(req.query[key]) as any;
     }
-    req.query = sanitizedQuery as Record<string, string | string[] | undefined> as typeof req.query;
   }
   if (req.params && typeof req.params === 'object') {
-    const sanitizedParams: Record<string, string> = {};
-    for (const [key, value] of Object.entries(req.params)) {
-      sanitizedParams[key] = typeof value === 'string' ? DOMPurify.sanitize(value.trim()) : value;
+    for (const key of Object.keys(req.params)) {
+      const value = req.params[key];
+      const sanitized = typeof value === 'string'
+        ? DOMPurify.sanitize(value.trim())
+        : Array.isArray(value)
+          ? value.map((v: string) => DOMPurify.sanitize(v.trim())).join(',')
+          : String(value);
+      req.params[key] = sanitized;
     }
-    req.params = sanitizedParams;
   }
   next();
 }

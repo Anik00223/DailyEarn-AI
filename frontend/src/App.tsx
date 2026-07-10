@@ -54,7 +54,8 @@ export default function App() {
       setLoading(false);
     };
     tryRefresh();
-  }, [setAuth, setLoading, logout]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ErrorBoundary>

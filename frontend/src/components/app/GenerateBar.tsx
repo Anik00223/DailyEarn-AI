@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
-import type { GenerateIdeasInput } from '../../types/api.types';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Loader2, Sparkles, MapPin } from 'lucide-react';
+import type { GenerateIdeasInput, ApiResponse } from '../../types/api.types';
+import api from '../../api/client';
 
 const PRESET_SKILLS = ['Typing', 'Cooking', 'Teaching', 'Driving', 'Stitching', 'Coding', 'Photography', 'Tailoring', 'Selling', 'Tutoring'];
 const LANGUAGES = [
@@ -26,6 +27,56 @@ export function GenerateBar({ onGenerate, isGenerating, generationsLeft }: Gener
   const [language, setLanguage] = useState<'en' | 'hi' | 'bn' | 'te' | 'ta' | 'mr'>('en');
   const [cooldown, setCooldown] = useState(false);
 
+  // Suggestions state
+  const [suggestions, setSuggestions] = useState<{ city: string; state: string; display: string }[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Debounced geocoding search
+  useEffect(() => {
+    if (city.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    // Skip calling API if selected suggestion matches current input
+    const isExactMatch = suggestions.some(
+      (s) => s.city.toLowerCase() === city.toLowerCase()
+    );
+    if (isExactMatch) return;
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const { data } = await api.get<ApiResponse<{ city: string; state: string; display: string }[]>>(
+          `/locations/search?q=${encodeURIComponent(city)}`
+        );
+        if (data.success) {
+          setSuggestions(data.data);
+          setShowSuggestions(true);
+        }
+      } catch (err) {
+        console.error('Failed to search locations:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [city]);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const toggleSkill = (skill: string) => {
     setSelectedSkills((prev) =>
       prev.includes(skill) ? prev.filter((s) => s !== skill) : prev.length < 5 ? [...prev, skill] : prev
@@ -44,7 +95,75 @@ export function GenerateBar({ onGenerate, isGenerating, generationsLeft }: Gener
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* Row 1: City + State + Goal + Language */}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Your city (e.g., Silchar)" style={{ flex: '1 1 180px', minWidth: 150, fontSize: '0.9rem' }} />
+          <div ref={containerRef} style={{ position: 'relative', flex: '1 1 180px', minWidth: 150 }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                value={city}
+                onChange={(e) => {
+                  setCity(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true);
+                }}
+                placeholder="Your city (e.g., Silchar)"
+                style={{ width: '100%', fontSize: '0.9rem', paddingRight: isSearching ? 40 : 16 }}
+              />
+              {isSearching && (
+                <Loader2
+                  size={16}
+                  className="animate-spin"
+                  style={{ position: 'absolute', right: 12, color: 'var(--text-secondary)' }}
+                />
+              )}
+            </div>
+            {showSuggestions && suggestions.length > 0 && (
+              <ul className="glass" style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                left: 0,
+                right: 0,
+                maxHeight: 220,
+                overflowY: 'auto',
+                zIndex: 100,
+                padding: '6px 0',
+                boxShadow: 'var(--glow-card)',
+                listStyle: 'none'
+              }}>
+                {suggestions.map((s, idx) => (
+                  <li
+                    key={idx}
+                    onClick={() => {
+                      setCity(s.city);
+                      setState(s.state);
+                      setShowSuggestions(false);
+                    }}
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '0.85rem',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      transition: 'background 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--accent-glow)';
+                      e.currentTarget.style.color = 'var(--accent)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }}
+                  >
+                    <MapPin size={14} style={{ color: 'var(--accent)' }} />
+                    <span>{s.display}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <input value={state} onChange={(e) => setState(e.target.value)} placeholder="State" style={{ flex: '1 1 140px', minWidth: 120, fontSize: '0.9rem' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px' }}>
             <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Goal: {formatINR(dailyGoal)}</span>

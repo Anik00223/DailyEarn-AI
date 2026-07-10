@@ -5,13 +5,32 @@ import { createError } from '../../middleware/errorHandler';
 import { buildIdeaPrompt, generateIdeaHash } from './ideas.prompt';
 import { geminiResponseSchema } from './ideas.schema';
 import type { GenerateIdeasInput, GeminiIdea } from './ideas.schema';
-import { generateContent } from '../../config/gemini';
+import { ideaQueue } from '../../queues/ideaGeneration.queue';
+import { redisGet, redisSet } from '../../config/redis';
+
+const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6 hours
 
 export async function generateIdeas(
   userId: string,
   params: GenerateIdeasInput
 ): Promise<typeof ideas.$inferSelect[]> {
-  // 1. Fetch previous idea hashes (last 50)
+  // 1. Check Redis cache for identical request
+  const cacheKey = `ideas:${userId}:${params.city.toLowerCase().trim()}:${params.state.toLowerCase().trim()}:${[...params.skills].sort().join(',')}:${params.dailyGoal}:${params.language}:${params.count}`;
+  try {
+    const cached = await redisGet(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached) as typeof ideas.$inferSelect[];
+      // Filter out any ideas marked as dismissed by user
+      const filtered = parsed.filter((idea) => idea.isDismissed === false);
+      if (filtered.length > 0) {
+        return filtered;
+      }
+    }
+  } catch {
+    // Cache miss or error — proceed with generation
+  }
+
+  // 2. Fetch previous idea hashes (last 50)
   const previousIdeas = await db
     .select({ ideaHash: ideas.ideaHash })
     .from(ideas)
@@ -21,7 +40,7 @@ export async function generateIdeas(
 
   const previousHashes = previousIdeas.map((i) => i.ideaHash);
 
-  // 2. Build prompt
+  // 3. Build prompt
   const prompt = buildIdeaPrompt({
     city: params.city,
     state: params.state,
@@ -33,19 +52,20 @@ export async function generateIdeas(
     count: params.count,
   });
 
-  // 3. Call Gemini API
+  // 4. Add generation job to Bull Queue and await finished result
   let rawResponse: string;
   try {
-    rawResponse = await generateContent(prompt);
+    const job = await ideaQueue.add({ prompt, userId });
+    const result = await job.finished() as { rawResponse: string };
+    rawResponse = result.rawResponse;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     throw createError(502, 'IDEA_GENERATION_FAILED', `AI generation failed: ${message}`);
   }
 
-  // 4. Parse and validate response
+  // 5. Parse response (guaranteed to succeed and validate due to validator hook)
   let parsedIdeas: GeminiIdea[];
   try {
-    // Clean response — remove markdown fences if present
     let cleanedResponse = rawResponse.trim();
     if (cleanedResponse.startsWith('```')) {
       cleanedResponse = cleanedResponse
@@ -61,7 +81,7 @@ export async function generateIdeas(
     throw createError(502, 'IDEA_GENERATION_FAILED', `Failed to parse AI response: ${message}`);
   }
 
-  // 5. Save ideas to database
+  // 6. Save ideas to database
   const savedIdeas: typeof ideas.$inferSelect[] = [];
   const generationTimestamp = new Date();
 
@@ -98,7 +118,16 @@ export async function generateIdeas(
     }
   }
 
-  // 6. Log analytics event
+  // 7. Cache result in Redis for 6 hours
+  if (savedIdeas.length > 0) {
+    try {
+      await redisSet(cacheKey, JSON.stringify(savedIdeas), CACHE_TTL_SECONDS);
+    } catch {
+      // Non-critical — continue even if caching fails
+    }
+  }
+
+  // 8. Log analytics event
   await db.insert(analytics).values({
     userId,
     eventType: 'idea_generated',
@@ -107,6 +136,7 @@ export async function generateIdeas(
       state: params.state,
       skills: params.skills,
       count: savedIdeas.length,
+      cached: false,
     },
   });
 

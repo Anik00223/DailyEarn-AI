@@ -1,0 +1,44 @@
+[Unit]
+Description=DailyEarn AI Backend Server
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=forking
+User=dailyearn
+Group=dailyearn
+WorkingDirectory=/opt/dailyearn
+
+# Environment
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/dailyearn/.env.production
+
+# Start script
+ExecStart=/opt/dailyearn/scripts/start-always.sh production
+ExecStop=/opt/dailyearn/scripts/stop.sh
+ExecReload=/opt/dailyearn/scripts/restart.sh production
+
+# Restart policy (systemd will restart if script exits unexpectedly)
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/dailyearn/logs /opt/dailyearn/data
+PrivateTmp=true
+
+# Logging
+StandardOutput=append:/opt/dailyearn/logs/service.log
+StandardError=append:/opt/dailyearn/logs/service-error.log
+SyslogIdentifier=dailyearn
+
+# Graceful shutdown timeout
+TimeoutStopSec=20
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

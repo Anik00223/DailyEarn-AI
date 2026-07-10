@@ -6,7 +6,7 @@ upstream backend {
 }
 
 upstream frontend {
-    server http://frontend:80 max_fails=3 fail_timeout=30s;
+    server frontend:80 max_fails=3 fail_timeout=30s;
 }
 
 server {

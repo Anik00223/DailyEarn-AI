@@ -51,7 +51,7 @@ router.put(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!.userId;
-      const ideaId = req.params.id;
+      const ideaId = req.params.id as string;
       const updatedIdea = await ideasService.saveIdea(ideaId, userId);
       res.json(success(updatedIdea));
     } catch (error) {
@@ -67,7 +67,7 @@ router.put(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!.userId;
-      const ideaId = req.params.id;
+      const ideaId = req.params.id as string;
       await ideasService.dismissIdea(ideaId, userId);
       res.json(success(null, 'Idea dismissed'));
     } catch (error) {

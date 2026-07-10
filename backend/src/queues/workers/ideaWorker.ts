@@ -1,10 +1,10 @@
 import { ideaQueue } from '../ideaGeneration.queue';
-import { generateContent } from '../../config/gemini';
+import { generateContent } from '../../config/groq';
+import { geminiResponseSchema } from '../../modules/ideas/ideas.schema';
 
 interface IdeaJobData {
   prompt: string;
   userId: string;
-  requestId: string;
 }
 
 interface IdeaJobResult {
@@ -19,7 +19,23 @@ ideaQueue.process(async (job): Promise<IdeaJobResult> => {
   console.log(`Processing idea generation job ${job.id} for user ${data.userId}`);
 
   try {
-    const rawResponse = await generateContent(data.prompt);
+    const validateJSON = (text: string): boolean => {
+      try {
+        let cleaned = text.trim();
+        if (cleaned.startsWith('```')) {
+          cleaned = cleaned
+            .replace(/^```(?:json)?\n?/, '')
+            .replace(/\n?```$/, '');
+        }
+        const json = JSON.parse(cleaned);
+        geminiResponseSchema.parse(json);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const rawResponse = await generateContent(data.prompt, validateJSON);
 
     return {
       rawResponse,
