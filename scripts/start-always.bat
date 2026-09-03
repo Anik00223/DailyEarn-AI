@@ -5,9 +5,10 @@ setlocal enabledelayedexpansion
 
 set PORT=3001
 set NODE_ENV=production
-set LOG_DIR=C:\Users\dasa8\OneDrive\Desktop\New folder (3)\logs
+set SCRIPT_DIR=%~dp0
+set LOG_DIR=%SCRIPT_DIR%..\logs
 set PID_FILE=%LOG_DIR%\server.pid
-set SERVER_DIR=C:\Users\dasa8\OneDrive\Desktop\New folder (3)\backend
+set SERVER_DIR=%SCRIPT_DIR%..\backend
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 

@@ -12,6 +12,8 @@ import { authRouter } from './modules/auth/auth.routes';
 import { ideasRouter } from './modules/ideas/ideas.routes';
 import { userRouter } from './modules/user/user.routes';
 import { locationsRouter } from './modules/locations/locations.routes';
+import { decisionRouter } from './modules/decision/decision.routes';
+import { seedOpportunities } from './db/seeds/seed';
 import { connectRedis, disconnectRedis, getRedisClient } from './config/redis';
 import { testDatabaseConnection, getDbPool } from './config/database';
 import { initializeWorker } from './queues/workers/ideaWorker';
@@ -87,26 +89,54 @@ process.on('unhandledRejection', (reason: unknown) => {
   }));
 });
 
-// Security
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", 'https://fonts.googleapis.com'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      connectSrc: ["'self'", env.CORS_ORIGIN],
-      frameSrc: ["'none'"],
-    },
-  },
-}));
+const configuredOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
 
-app.use(cors({
-  origin: env.CORS_ORIGIN,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// Security
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        connectSrc: [
+          "'self'",
+          ...configuredOrigins,
+          ...(env.NODE_ENV !== 'production'
+            ? ['http://localhost:*', 'http://127.0.0.1:*', 'ws://localhost:*', 'ws://127.0.0.1:*']
+            : []),
+        ],
+        frameSrc: ["'none'"],
+      },
+    },
+  })
+);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile, curl, postman)
+      if (!origin) return callback(null, true);
+
+      // In development/test, allow any localhost or 127.0.0.1 port (e.g., 5173, 5174, 3000)
+      if (env.NODE_ENV !== 'production') {
+        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+          return callback(null, true);
+        }
+      }
+
+      if (configuredOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      callback(new Error(`CORS error: Origin ${origin} not allowed`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+  })
+);
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -115,7 +145,7 @@ app.use(cookieParser());
 app.use(requestIdMiddleware);
 app.use(globalLimiter);
 
-// Enhanced health check
+// Enhanced health check (safe for production probes)
 async function computeHealthChecks() {
   const checks: Record<string, string> = {};
   try {
@@ -127,24 +157,25 @@ async function computeHealthChecks() {
   }
   try {
     const client = getRedisClient();
-    if (client.isOpen) {
+    if (client && client.isOpen) {
       await client.ping();
       checks.redis = 'ok';
     } else {
-      checks.redis = 'connecting';
+      checks.redis = 'degraded';
     }
   } catch {
     checks.redis = 'error';
   }
-  const allOk = Object.values(checks).every((v) => v === 'ok');
-  return { allOk, checks };
+  // Database is the critical dependency. If DB is ok, service is healthy (200).
+  const isHealthy = checks.database === 'ok';
+  return { isHealthy, checks };
 }
 
-// API health endpoint
+// API health endpoint (used by Render and uptime monitors)
 app.get('/api/health', async (_req: Request, res: Response) => {
-  const { allOk, checks } = await computeHealthChecks();
-  res.status(allOk ? 200 : 503).json({
-    status: allOk ? 'ok' : 'degraded',
+  const { isHealthy, checks } = await computeHealthChecks();
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? (checks.redis === 'ok' ? 'ok' : 'degraded') : 'unhealthy',
     db: checks.database === 'ok',
     redis: checks.redis === 'ok',
     timestamp: new Date().toISOString(),
@@ -155,9 +186,9 @@ app.get('/api/health', async (_req: Request, res: Response) => {
 
 // Root health endpoint used by Docker/Nginx (keeps backwards compatibility)
 app.get('/health', async (_req: Request, res: Response) => {
-  const { allOk, checks } = await computeHealthChecks();
-  res.status(allOk ? 200 : 503).json({
-    status: allOk ? 'ok' : 'degraded',
+  const { isHealthy, checks } = await computeHealthChecks();
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? (checks.redis === 'ok' ? 'ok' : 'degraded') : 'unhealthy',
     db: checks.database === 'ok',
     redis: checks.redis === 'ok',
     timestamp: new Date().toISOString(),
@@ -174,6 +205,7 @@ app.get('/api/monitor', (_req: Request, res: Response) => {
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/ideas', ideasRouter);
+app.use('/api/decision', decisionRouter);
 app.use('/api/user', userRouter);
 app.use('/api/locations', locationsRouter);
 
@@ -194,22 +226,24 @@ async function startServer(): Promise<void> {
       if (!dbConnected) {
         retryCount++;
         const waitMs = Math.min(1000 * Math.pow(2, retryCount), 30000);
-        console.warn('?? DB connection failed - retry ' + retryCount + '/' + maxRetries + ' in ' + waitMs + 'ms');
+        console.warn(`⚠️ DB connection attempt failed - retry ${retryCount}/${maxRetries} in ${waitMs}ms`);
         await new Promise((r) => setTimeout(r, waitMs));
         continue;
       }
       try {
         await connectRedis();
       } catch {
-        console.warn('?? Redis connection failed - rate limiting may not work');
+        console.warn('⚠️ Redis connection failed - caching and rate limiting will use in-memory fallback');
       }
       initializeWorker();
+      await seedOpportunities();
 
-      server = app.listen(env.PORT, () => {
-        console.log('?? DailyEarn AI backend running on port ' + env.PORT);
-        console.log('?? Environment: ' + env.NODE_ENV);
-        console.log('?? CORS origin: ' + env.CORS_ORIGIN);
-        console.log('?? PID: ' + process.pid);
+      server = app.listen(env.PORT, '0.0.0.0', () => {
+        console.log(`[Server] DailyEarn AI backend listening on 0.0.0.0:${env.PORT}`);
+        console.log(`[Server] Environment: ${env.NODE_ENV}`);
+        console.log(`[Server] CORS origin: ${env.CORS_ORIGIN}`);
+        console.log(`[Server] Database: connected`);
+        console.log(`[Server] PID: ${process.pid}`);
       });
 
       server.on('error', (err: NodeJS.ErrnoException) => {

@@ -10,7 +10,7 @@
 SERVICE_NAME="DailyEarnAI"
 DISPLAY_NAME="DailyEarn AI Backend Server"
 DESCRIPTION="AI-powered hyper-local daily income idea generation service"
-BINARY_PATH="C:\Users\dasa8\OneDrive\Desktop\New folder (3)\scripts\start-always.bat"
+BINARY_PATH="%~dp0start-always.bat"
 
 case "%~1" in
     install-service.bat)

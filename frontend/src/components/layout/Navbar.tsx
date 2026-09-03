@@ -20,6 +20,9 @@ export function Navbar() {
           <Sparkles size={20} /> DailyEarn AI
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Link to="/analytics" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textDecoration: 'none' }}>
+            Telemetry
+          </Link>
           {isAuthenticated ? (
             <>
               <Link to="/dashboard" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textDecoration: 'none' }}>Dashboard</Link>

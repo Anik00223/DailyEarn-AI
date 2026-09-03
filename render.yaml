@@ -1,0 +1,52 @@
+services:
+  # ─── BACKEND WEB SERVICE ───
+  - type: web
+    name: dailyearn-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: node dist/server.js
+    healthCheckPath: /api/health
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dailyearn-db
+          property: connectionString
+      - key: REDIS_URL
+        value: redis://localhost:6379
+      - key: GROQ_API_KEY
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: BCRYPT_ROUNDS
+        value: "12"
+      - key: CORS_ORIGIN
+        value: https://dailyearn-frontend.onrender.com
+      - key: ADMIN_SECRET
+        generateValue: true
+
+  # ─── FRONTEND STATIC SITE ───
+  - type: static
+    name: dailyearn-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://dailyearn-backend.onrender.com
+
+databases:
+  # ─── MANAGED POSTGRESQL ───
+  - name: dailyearn-db
+    databaseName: dailyearn
+    user: dailyearn
+    plan: free

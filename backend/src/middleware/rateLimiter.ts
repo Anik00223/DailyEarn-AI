@@ -1,6 +1,7 @@
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import { getRedisClient } from '../config/redis';
+import { env } from '../config/env';
 
 /**
  * Create a Redis-backed store if Redis client is connected.
@@ -29,10 +30,10 @@ function createRedisStore(prefix: string): RedisStore | undefined {
   }
 }
 
-// 5 per 15 minutes per IP
+// 5 per 15 minutes per IP (50 in development)
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: env.NODE_ENV === 'production' ? 5 : 50,
   standardHeaders: true,
   legacyHeaders: false,
   // store: createRedisStore('login'),
@@ -44,10 +45,10 @@ export const loginLimiter = rateLimit({
   },
 });
 
-// 3 per hour per IP
+// 10 per hour per IP (100 in development)
 export const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 3,
+  max: env.NODE_ENV === 'production' ? 10 : 100,
   standardHeaders: true,
   legacyHeaders: false,
   store: createRedisStore('register'),

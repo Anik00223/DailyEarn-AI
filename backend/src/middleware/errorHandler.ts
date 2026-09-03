@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import { env } from '../config/env';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -76,11 +77,15 @@ export function errorHandler(
     return;
   }
 
-  // 500 — Never expose internal details
+  // 500 — Expose details in development, safe generic in production
   res.status(500).json({
     success: false,
     code: 'INTERNAL_ERROR',
-    message: 'An unexpected error occurred. Please try again later.',
+    message:
+      env.NODE_ENV === 'production'
+        ? 'An unexpected error occurred. Please try again later.'
+        : err.message,
+    ...(env.NODE_ENV !== 'production' ? { stack: err.stack } : {}),
   });
 }
 

@@ -1,7 +1,9 @@
 # Environment
 .env
-.env.local
-.env.*.local
+.env.*
+!.env*.sample
+!.env.example
+
 
 # Dependencies
 node_modules/
@@ -36,3 +38,9 @@ coverage/
 *.log
 server_error.log
 error.log
+
+# Build & Tooling Cache
+*.tsbuildinfo
+.turbo/
+.mcp.json
+.agents/

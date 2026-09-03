@@ -36,8 +36,29 @@ export function RegisterPage() {
         navigate('/dashboard');
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setServerError(error.response?.data?.message || 'Registration failed. Please try again.');
+      console.error('[Registration failed]', err);
+      const error = err as {
+        message?: string;
+        response?: {
+          status?: number;
+          data?: {
+            message?: string;
+            errors?: Array<{ field?: string; message?: string }>;
+            code?: string;
+          };
+        };
+      };
+
+      let displayMsg = error.response?.data?.message;
+      if (error.response?.data?.errors?.length) {
+        displayMsg = error.response.data.errors
+          .map((e) => (e.field ? `${e.field}: ${e.message}` : e.message))
+          .join(', ');
+      } else if (!error.response && error.message) {
+        displayMsg = `Network error: ${error.message}. Please verify the backend server is reachable at ${api.defaults.baseURL}`;
+      }
+
+      setServerError(displayMsg || 'Registration failed. Please try again.');
     }
   };
 

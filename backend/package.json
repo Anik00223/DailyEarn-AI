@@ -19,7 +19,6 @@
   "dependencies": {
     "@bull-board/api": "^6.6.0",
     "@bull-board/express": "^6.6.0",
-    "@google/generative-ai": "^0.24.0",
     "bcrypt": "^5.1.1",
     "bull": "^4.16.0",
     "cookie-parser": "^1.4.7",

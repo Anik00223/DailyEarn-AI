@@ -3,6 +3,17 @@ import * as authService from './auth.service';
 import { success } from '../../utils/apiResponse';
 import { env } from '../../config/env';
 
+function getAuthCookieOptions() {
+  const isProd = env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/api/auth',
+  };
+}
+
 export async function registerController(
   req: Request,
   res: Response,
@@ -15,13 +26,7 @@ export async function registerController(
     const result = await authService.register(req.body, ipAddress, userAgent);
 
     // Set refresh token as httpOnly cookie
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/api/auth/refresh',
-    });
+    res.cookie('refreshToken', result.refreshToken, getAuthCookieOptions());
 
     // Return ONLY accessToken in response body
     res.status(201).json(
@@ -46,13 +51,7 @@ export async function loginController(
 
     const result = await authService.login(req.body, ipAddress, userAgent);
 
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/api/auth/refresh',
-    });
+    res.cookie('refreshToken', result.refreshToken, getAuthCookieOptions());
 
     res.json(
       success(
@@ -87,13 +86,7 @@ export async function refreshController(
 
     const result = await authService.refresh(oldRefreshToken, ipAddress, userAgent);
 
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/api/auth/refresh',
-    });
+    res.cookie('refreshToken', result.refreshToken, getAuthCookieOptions());
 
     res.json(success({ accessToken: result.accessToken }));
   } catch (error) {
@@ -113,12 +106,9 @@ export async function logoutController(
       await authService.logout(refreshToken);
     }
 
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/api/auth/refresh',
-    });
+    const clearOpts = getAuthCookieOptions();
+    delete (clearOpts as any).maxAge;
+    res.clearCookie('refreshToken', clearOpts);
 
     res.json(success(null, 'Logged out successfully'));
   } catch (error) {

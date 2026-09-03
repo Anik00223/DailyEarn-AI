@@ -1,83 +1,198 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { useIdeasStore } from '../store/ideasStore';
 import { GenerateBar } from '../components/app/GenerateBar';
-import { IdeaCard } from '../components/app/IdeaCard';
-import { Sparkles } from 'lucide-react';
+import { RecommendationCard } from '../components/app/RecommendationCard';
+import { FeasibilityBanner } from '../components/app/FeasibilityBanner';
+import { IncomeMixCard } from '../components/app/IncomeMixCard';
+import { IncomeSimulatorModal } from '../components/app/IncomeSimulatorModal';
+import { SevenDayPlanDrawer } from '../components/app/SevenDayPlanDrawer';
+import { TrustCenterModal } from '../components/app/TrustCenterModal';
+import { OutcomeFeedbackModal } from '../components/app/OutcomeFeedbackModal';
+import { CompetitionHeroDemo } from '../components/demo/CompetitionHeroDemo';
+import { Sparkles, Compass } from 'lucide-react';
 import api from '../api/client';
-import type { GenerateIdeasInput, ApiResponse, Idea } from '../types/api.types';
+import type { UserConstraints, DecisionResult, ApiResponse } from '../types/decision.types';
+import { useDecisionStore } from '../store/decisionStore';
 
 export function DashboardPage() {
-  const { ideas, isGenerating, generationsToday, maxGenerations, setIdeas, addIdeas, setGenerating, incrementGenerations, dismissIdea: dismissFromStore, saveIdea: saveFromStore } = useIdeasStore();
+  const {
+    decision,
+    isEvaluating,
+    activePlan,
+    simulatorOpp,
+    isTrustCenterOpen,
+    outcomeOpp,
+    setDecision,
+    setEvaluating,
+    setActivePlan,
+    setSimulatorOpp,
+    setTrustCenterOpen,
+    setOutcomeOpp,
+  } = useDecisionStore();
+
+  const [activeConstraints, setActiveConstraints] = useState<UserConstraints>({
+    city: 'Silchar',
+    state: 'Assam',
+    targetDailyIncome: 800,
+    availableHoursPerDay: 4,
+    availableCapital: 0,
+    hasVehicle: false,
+    experienceLevel: 'beginner',
+    skills: ['Teaching'],
+    language: 'en',
+  });
+
   const cardsRef = useRef<HTMLDivElement>(null);
 
-  // Load existing ideas on mount
-  useEffect(() => {
-    const loadIdeas = async () => {
-      try {
-        const { data } = await api.get<ApiResponse<{ ideas: Idea[]; total: number }>>('/ideas?page=1&limit=20');
-        if (data.success) setIdeas(data.data.ideas);
-      } catch { /* empty state is fine */ }
-    };
-    loadIdeas();
-  }, [setIdeas]);
+  const handleEvaluate = async (constraints: UserConstraints) => {
+    setActiveConstraints(constraints);
+    // Clear stale decision state immediately so old metadata is never displayed during or after constraint changes
+    setDecision(null);
+    setActivePlan(null);
+    setSimulatorOpp(null);
+    setEvaluating(true);
 
-  const handleGenerate = async (params: GenerateIdeasInput) => {
-    setGenerating(true);
     try {
-      const { data } = await api.post<ApiResponse<Idea[]>>('/ideas/generate', params);
-      if (data.success) {
-        addIdeas(data.data);
-        incrementGenerations();
-        // Animate new cards
-        if (cardsRef.current) {
-          const newCards = cardsRef.current.querySelectorAll('[data-card]');
-          gsap.fromTo(newCards, { y: 35, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, stagger: 0.1, ease: 'power3.out' });
-        }
+      const res = await api.post<ApiResponse<DecisionResult>>('/decision/evaluate', constraints);
+      if (res.data.success && res.data.data) {
+        setDecision(res.data.data);
+
+        // Animate newly rendered recommendation cards
+        setTimeout(() => {
+          if (cardsRef.current) {
+            const cards = cardsRef.current.querySelectorAll('article');
+            gsap.fromTo(cards, { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.08, ease: 'power3.out' });
+          }
+        }, 50);
       }
     } catch (err) {
-      console.error('Generation failed:', err);
+      console.error('Decision evaluation failed:', err);
     } finally {
-      setGenerating(false);
+      setEvaluating(false);
     }
   };
 
-  const handleSave = async (id: string) => {
-    saveFromStore(id);
-    try { await api.put(`/ideas/${id}/save`); } catch { saveFromStore(id); } // rollback on error
-  };
-
-  const handleDismiss = async (id: string) => {
-    dismissFromStore(id);
-    try { await api.put(`/ideas/${id}/dismiss`); } catch { /* already removed from UI */ }
-  };
+  // Initial load: trigger default evaluation on mount if empty
+  useEffect(() => {
+    if (!decision) {
+      handleEvaluate(activeConstraints);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <main style={{ paddingTop: 64, minHeight: '100vh' }}>
-      <GenerateBar onGenerate={handleGenerate} isGenerating={isGenerating} generationsLeft={maxGenerations - generationsToday} />
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }} ref={cardsRef}>
-        {ideas.length === 0 && !isGenerating && (
-          <div style={{ textAlign: 'center', padding: '80px 24px' }}>
-            <Sparkles size={48} color="var(--accent)" style={{ marginBottom: 16, opacity: 0.5 }} />
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', color: 'var(--text-secondary)', marginBottom: 8 }}>No ideas yet</h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Enter your city and skills above to get started</p>
+    <main style={{ paddingTop: 72, minHeight: '100vh', paddingBottom: 60 }}>
+      {/* Generate / Constraints Bar */}
+      <GenerateBar
+        onEvaluate={handleEvaluate}
+        isEvaluating={isEvaluating}
+        initialConstraints={activeConstraints}
+      />
+
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px' }}>
+        {/* Competition Hero Demo Selector */}
+        <CompetitionHeroDemo onLoadDemo={handleEvaluate} />
+
+        {/* Empty state while no evaluation has taken place */}
+        {!decision && !isEvaluating && (
+          <div style={{ textAlign: 'center', padding: '70px 24px' }}>
+            <Compass size={48} color="var(--accent)" style={{ marginBottom: 16, opacity: 0.7 }} />
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: '#fff', marginBottom: 8 }}>
+              Ready to Evaluate Your Income Path
+            </h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', maxWidth: 500, margin: '0 auto' }}>
+              Select your city, skills, and constraints above to calculate your realistic earning ceiling and verified local recommendations.
+            </p>
           </div>
         )}
-        {isGenerating && ideas.length === 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="skeleton" style={{ height: 380, borderRadius: 'var(--radius-md)' }} />
-            ))}
-          </div>
-        )}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
-          {ideas.map((idea, index) => (
-            <div key={idea.id} data-card>
-              <IdeaCard idea={idea} onSave={handleSave} onDismiss={handleDismiss} index={index} />
+
+        {/* Skeleton loading state */}
+        {isEvaluating && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div className="skeleton" style={{ height: 140, borderRadius: 'var(--radius-md)' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 24 }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton" style={{ height: 380, borderRadius: 'var(--radius-md)' }} />
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {/* Evaluated Decision View */}
+        {decision && !isEvaluating && (
+          <div>
+            {/* Feasibility Banner */}
+            <FeasibilityBanner
+              feasibility={decision.feasibility}
+              gapAnalysis={decision.targetGapAnalysis}
+            />
+
+            {/* Income Mix Bundle if available */}
+            {decision.incomeMix && <IncomeMixCard mix={decision.incomeMix} />}
+
+            {/* Recommendation Cards Section */}
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.35rem', color: '#fff', margin: '0 0 6px' }}>
+                Ranked Verified Opportunities for {decision.constraints.city}
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 20px' }}>
+                Scored and calculated deterministically based on your {decision.constraints.availableHoursPerDay} hours/day time budget and {decision.constraints.experienceLevel} experience.
+              </p>
+
+              <div
+                ref={cardsRef}
+                style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 24 }}
+              >
+                {decision.recommendations.map((item, index) => (
+                  <RecommendationCard
+                    key={item.opportunity.slug}
+                    item={item}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* MODALS & DRAWERS */}
+      {/* 1. Interactive Income Simulator Modal */}
+      {simulatorOpp && (
+        <IncomeSimulatorModal
+          item={simulatorOpp}
+          onClose={() => setSimulatorOpp(null)}
+          targetDailyIncome={decision?.constraints.targetDailyIncome}
+        />
+      )}
+
+      {/* 2. 7-Day Execution Plan Drawer */}
+      {activePlan && (
+        <SevenDayPlanDrawer
+          plan={activePlan}
+          onClose={() => setActivePlan(null)}
+          onSavePlan={async (plan) => {
+            try {
+              await api.post('/decision/plans', plan);
+            } catch (e) {
+              console.warn('Plan save offline fallback');
+            }
+          }}
+        />
+      )}
+
+      {/* 3. Trust Center & Verification Modal */}
+      {isTrustCenterOpen && (
+        <TrustCenterModal onClose={() => setTrustCenterOpen(false)} />
+      )}
+
+      {/* 4. Real-World Outcome Feedback Modal */}
+      {outcomeOpp && (
+        <OutcomeFeedbackModal
+          item={outcomeOpp}
+          onClose={() => setOutcomeOpp(null)}
+        />
+      )}
     </main>
   );
 }

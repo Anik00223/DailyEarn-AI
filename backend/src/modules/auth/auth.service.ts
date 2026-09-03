@@ -51,7 +51,7 @@ async function storeSession(
   ipAddress: string | null,
   userAgent: string | null
 ): Promise<void> {
-  const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+  const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
   await db.insert(sessions).values({
@@ -172,43 +172,27 @@ export async function refresh(
   ipAddress: string | null,
   userAgent: string | null
 ): Promise<{ accessToken: string; refreshToken: string }> {
-  // Find all non-expired sessions
-  const allSessions = await db
+  const tokenHash = crypto.createHash('sha256').update(oldRefreshToken).digest('hex');
+
+  // Direct O(1) indexed lookup for the session
+  const [matchedSession] = await db
     .select()
     .from(sessions)
-    .where(eq(sessions.isRevoked, false));
-
-  // Find matching session by comparing hashes
-  let matchedSession = null;
-  for (const session of allSessions) {
-    const isMatch = await bcrypt.compare(oldRefreshToken, session.refreshTokenHash);
-    if (isMatch) {
-      matchedSession = session;
-      break;
-    }
-  }
+    .where(eq(sessions.refreshTokenHash, tokenHash))
+    .limit(1);
 
   if (!matchedSession) {
-    // Check if token matches a revoked session (token reuse attack)
-    const revokedSessions = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.isRevoked, true));
-
-    for (const session of revokedSessions) {
-      const isReuse = await bcrypt.compare(oldRefreshToken, session.refreshTokenHash);
-      if (isReuse) {
-        // SECURITY: Revoke entire token family
-        await db
-          .update(sessions)
-          .set({ isRevoked: true })
-          .where(eq(sessions.tokenFamily, session.tokenFamily));
-
-        throw createError(401, 'REFRESH_TOKEN_REUSE', 'Token reuse detected. All sessions revoked.');
-      }
-    }
-
     throw createError(401, 'INVALID_TOKEN', 'Invalid refresh token');
+  }
+
+  // If token matches an already revoked session, trigger reuse detection on token family
+  if (matchedSession.isRevoked) {
+    await db
+      .update(sessions)
+      .set({ isRevoked: true })
+      .where(eq(sessions.tokenFamily, matchedSession.tokenFamily));
+
+    throw createError(401, 'REFRESH_TOKEN_REUSE', 'Token reuse detected. All sessions revoked.');
   }
 
   // Check expiry
@@ -256,21 +240,11 @@ export async function refresh(
 }
 
 export async function logout(refreshToken: string): Promise<void> {
-  const allSessions = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.isRevoked, false));
-
-  for (const session of allSessions) {
-    const isMatch = await bcrypt.compare(refreshToken, session.refreshTokenHash);
-    if (isMatch) {
-      await db
-        .update(sessions)
-        .set({ isRevoked: true })
-        .where(eq(sessions.id, session.id));
-      return;
-    }
-  }
+  const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+  await db
+    .update(sessions)
+    .set({ isRevoked: true })
+    .where(eq(sessions.refreshTokenHash, tokenHash));
 }
 
 export async function getMe(userId: string) {
