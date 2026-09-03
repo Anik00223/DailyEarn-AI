@@ -8,6 +8,13 @@
       "when": 1778227449889,
       "tag": "0000_magical_arachne",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788468856008,
+      "tag": "0001_known_flatman",
+      "breakpoints": true
     }
   ]
 }

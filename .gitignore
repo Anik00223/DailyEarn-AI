@@ -29,7 +29,6 @@ __pycache__/
 
 # Database
 *.db
-drizzle/meta/
 
 # Test & Coverage
 coverage/

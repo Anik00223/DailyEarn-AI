@@ -18,6 +18,10 @@ import { connectRedis, disconnectRedis, getRedisClient } from './config/redis';
 import { testDatabaseConnection, getDbPool } from './config/database';
 import { initializeWorker } from './queues/workers/ideaWorker';
 import { monitor } from './utils/monitor';
+import { db } from './db';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import path from 'path';
+import fs from 'fs';
 
 const app = express();
 let server: ReturnType<typeof app.listen> | null = null;
@@ -230,12 +234,33 @@ async function startServer(): Promise<void> {
         await new Promise((r) => setTimeout(r, waitMs));
         continue;
       }
+      let redisOk = false;
       try {
         await connectRedis();
+        redisOk = true;
       } catch {
         console.warn('⚠️ Redis connection failed - caching and rate limiting will use in-memory fallback');
       }
-      initializeWorker();
+      if (redisOk) {
+        initializeWorker();
+      }
+
+      // Automatically synchronize PostgreSQL schema on startup if needed
+      try {
+        const candidateFolders = [
+          path.resolve(__dirname, '../drizzle'),
+          path.resolve(process.cwd(), 'drizzle'),
+          path.resolve(process.cwd(), 'backend/drizzle'),
+        ];
+        const migrationsFolder = candidateFolders.find((f) => fs.existsSync(f));
+        if (migrationsFolder) {
+          await migrate(db, { migrationsFolder });
+          console.log('✅ PostgreSQL schema synchronized');
+        }
+      } catch (migErr) {
+        console.warn('⚠️ Schema migration notice:', migErr instanceof Error ? migErr.message : migErr);
+      }
+
       await seedOpportunities();
 
       server = app.listen(env.PORT, '0.0.0.0', () => {

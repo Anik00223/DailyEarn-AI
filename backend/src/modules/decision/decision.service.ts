@@ -218,17 +218,21 @@ export async function evaluateDecision(
       savedId = saved?.id;
 
       // Log analytics
-      await db.insert(analytics).values({
-        userId,
-        eventType: 'decision_evaluated' as any,
-        metadata: {
-          city: constraints.city,
-          targetDailyIncome: constraints.targetDailyIncome,
-          feasibility: feasibility.status,
-          topOpportunity: topOpps[0]?.opportunity.slug,
-          gap: feasibility.targetGap,
-        },
-      });
+      try {
+        await db.insert(analytics).values({
+          userId,
+          eventType: 'idea_generated',
+          metadata: {
+            city: constraints.city,
+            targetDailyIncome: constraints.targetDailyIncome,
+            feasibility: feasibility.status,
+            topOpportunity: topOpps[0]?.opportunity.slug,
+            gap: feasibility.targetGap,
+          },
+        });
+      } catch {
+        // Analytics failure should never break decision flow
+      }
     }
   } catch (err) {
     console.warn('[Decision DB] Failed to persist recommendation record:', err);

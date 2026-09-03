@@ -6,6 +6,12 @@ const redisOpts = {
   host: redisUrl.hostname || '127.0.0.1',
   port: redisUrl.port ? parseInt(redisUrl.port, 10) : 6379,
   password: redisUrl.password || undefined,
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
+  retryStrategy: (times: number) => {
+    if (times > 2) return null; // Stop reconnecting after 2 tries if Redis unavailable
+    return Math.min(times * 300, 1000);
+  },
 };
 
 export const ideaQueue = new Bull('idea-generation', {
@@ -22,8 +28,12 @@ export const ideaQueue = new Bull('idea-generation', {
   },
 });
 
+let bullLogged = false;
 ideaQueue.on('error', (error: Error) => {
-  console.error('Bull queue error:', error.message);
+  if (!bullLogged) {
+    console.warn('⚠️ Bull queue background worker disabled (Redis offline — running in memory):', error.message);
+    bullLogged = true;
+  }
 });
 
 ideaQueue.on('failed', (job, err) => {
