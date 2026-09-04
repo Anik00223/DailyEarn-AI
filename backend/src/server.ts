@@ -95,6 +95,22 @@ process.on('unhandledRejection', (reason: unknown) => {
 
 const configuredOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
 
+const isOriginAllowed = (origin?: string): boolean => {
+  if (!origin) return true;
+  if (env.NODE_ENV !== 'production') {
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return true;
+    }
+  }
+  if (configuredOrigins.includes('*') || configuredOrigins.includes(origin)) {
+    return true;
+  }
+  if (/^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(origin)) {
+    return true;
+  }
+  return false;
+};
+
 // Security
 app.use(
   helmet({
@@ -106,6 +122,7 @@ app.use(
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         connectSrc: [
           "'self'",
+          'https://*.onrender.com',
           ...configuredOrigins,
           ...(env.NODE_ENV !== 'production'
             ? ['http://localhost:*', 'http://127.0.0.1:*', 'ws://localhost:*', 'ws://127.0.0.1:*']
@@ -117,30 +134,20 @@ app.use(
   })
 );
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile, curl, postman)
-      if (!origin) return callback(null, true);
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS error: Origin ${origin} not allowed`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+};
 
-      // In development/test, allow any localhost or 127.0.0.1 port (e.g., 5173, 5174, 3000)
-      if (env.NODE_ENV !== 'production') {
-        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-          return callback(null, true);
-        }
-      }
-
-      if (configuredOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      callback(new Error(`CORS error: Origin ${origin} not allowed`));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
-  })
-);
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
