@@ -269,6 +269,31 @@ async function startServer(): Promise<void> {
         console.log(`[Server] CORS origin: ${env.CORS_ORIGIN}`);
         console.log(`[Server] Database: connected`);
         console.log(`[Server] PID: ${process.pid}`);
+
+        // Keep-alive self-ping for Render / Cloud deployments (prevents 15-min idle spin-down)
+        const renderUrl =
+          process.env.RENDER_EXTERNAL_URL ||
+          (env.NODE_ENV === 'production' ? 'https://dailyearn-ai-1.onrender.com' : null);
+
+        if (renderUrl) {
+          const TEN_MINUTES_MS = 10 * 60 * 1000;
+          setInterval(async () => {
+            try {
+              const https = await import('https');
+              const targetUrl = `${renderUrl.replace(/\/$/, '')}/api/health`;
+              https.get(targetUrl, (res) => {
+                if (res.statusCode && res.statusCode < 400) {
+                  console.log(`[KeepAlive] Ping successful: HTTP ${res.statusCode} at ${new Date().toISOString()}`);
+                }
+              }).on('error', (err) => {
+                console.warn('[KeepAlive] Ping notice:', err.message);
+              });
+            } catch {
+              // Ignore keep-alive error
+            }
+          }, TEN_MINUTES_MS);
+          console.log(`[KeepAlive] 10-minute keep-alive ping active for ${renderUrl}`);
+        }
       });
 
       server.on('error', (err: NodeJS.ErrnoException) => {
