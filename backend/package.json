@@ -14,7 +14,8 @@
     "db:studio": "drizzle-kit studio",
     "db:migrate:run": "tsx src/db/migrate.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:groq": "tsx src/groqDiagnostic.ts"
   },
   "dependencies": {
     "@bull-board/api": "^6.6.0",

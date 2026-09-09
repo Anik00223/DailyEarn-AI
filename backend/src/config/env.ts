@@ -1,11 +1,33 @@
+import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 import { z } from 'zod';
+
+// Ensure .env is loaded regardless of execution CWD
+const envFiles = [
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../../../.env'),
+];
+for (const f of envFiles) {
+  if (fs.existsSync(f)) {
+    dotenv.config({ path: f });
+  }
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().default('3001').transform(Number),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required (add Render PostgreSQL Internal Connection String)'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
-  GROQ_API_KEY: z.string().default('gsk_placeholder_for_render_deterministic_fallback'),
+  GROQ_API_KEY: z
+    .string()
+    .default('')
+    .transform((val) => (val ? val.trim().replace(/^['"]|['"]$/g, '') : '')),
+  GROQ_MODEL: z
+    .string()
+    .default('qwen/qwen3.8-27b')
+    .transform((val) => val.trim().replace(/^['"]|['"]$/g, '')),
   JWT_ACCESS_SECRET: z
     .string()
     .default('dailyearn_default_access_secret_min_64_chars_for_security_and_render_0123456789'),
@@ -31,3 +53,18 @@ if (!parsed.success) {
 }
 
 export const env: Env = parsed.data;
+
+export function isGroqConfigured(): boolean {
+  const key = env.GROQ_API_KEY;
+  if (!key || key.trim() === '') return false;
+  if (
+    key.includes('placeholder') ||
+    key.includes('your_groq_api_key') ||
+    key.includes('your_') ||
+    key === 'gsk_placeholder_for_render_deterministic_fallback'
+  ) {
+    return false;
+  }
+  return key.startsWith('gsk_') || key.length >= 20;
+}
+

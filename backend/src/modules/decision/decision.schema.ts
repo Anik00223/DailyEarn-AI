@@ -83,9 +83,19 @@ export function isQualitativeTextOnly(text: string): { valid: boolean; reason?: 
   }
 
   // 4. Numbers written as words (e.g. "ninety-two", "one hundred", "eight hundred", "fifty", etc.)
-  const numberWordsRegex =
-    /\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:-(?:one|two|three|four|five|six|seven|eight|nine))?\s*(?:hundred|thousand|lakh|crore)?\b/i;
-  if (numberWordsRegex.test(text) || /\b(?:hundred|thousand|lakh|crore)\b/i.test(text)) {
+  const compoundOrMagnitudeRegex =
+    /\b(?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:-(?:one|two|three|four|five|six|seven|eight|nine))?\b/i;
+  const magnitudeRegex = /\b(?:hundred|thousand|lakh|crore)\b/i;
+  const smallNumberQuantityRegex =
+    /\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\s+(?:hundred|thousand|lakh|crore|rupees?|inr|percent|score)\b/i;
+  const ratioNumberRegex = /\bout\s+of\s+(?:one|two|three|four|five|six|seven|eight|nine|ten|hundred)\b/i;
+
+  if (
+    compoundOrMagnitudeRegex.test(text) ||
+    magnitudeRegex.test(text) ||
+    smallNumberQuantityRegex.test(text) ||
+    ratioNumberRegex.test(text)
+  ) {
     return { valid: false, reason: 'Contains numeric words' };
   }
 

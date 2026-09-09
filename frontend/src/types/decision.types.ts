@@ -242,6 +242,19 @@ export interface GeneratedPlan {
   notes?: string;
 }
 
+export interface AiEnrichmentStatus {
+  status:
+    | 'applied'
+    | 'fallback_unconfigured'
+    | 'fallback_auth_error'
+    | 'fallback_rate_limit'
+    | 'fallback_timeout'
+    | 'fallback_validation_error'
+    | 'fallback_error';
+  message: string;
+  model: string;
+}
+
 export interface DecisionResult {
   id?: string;
   feasibility: FeasibilityVerdict;
@@ -250,4 +263,6 @@ export interface DecisionResult {
   recommendations: EvaluatedOpportunity[];
   constraints: UserConstraints;
   primary7DayPlan: GeneratedPlan | null;
+  aiStatus?: AiEnrichmentStatus;
 }
+

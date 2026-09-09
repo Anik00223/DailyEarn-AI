@@ -130,6 +130,30 @@ export function DashboardPage() {
             {/* Income Mix Bundle if available */}
             {decision.incomeMix && <IncomeMixCard mix={decision.incomeMix} />}
 
+            {/* AI Service Fallback Notice */}
+            {decision.aiStatus && decision.aiStatus.status !== 'applied' && (
+              <div
+                style={{
+                  margin: '0 0 20px 0',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255, 170, 0, 0.08)',
+                  border: '1px solid rgba(255, 170, 0, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  fontSize: '0.84rem',
+                  color: '#FFAA00',
+                  lineHeight: 1.45,
+                }}
+              >
+                <Sparkles size={18} style={{ flexShrink: 0 }} />
+                <span>
+                  <strong>AI Rationale:</strong> {decision.aiStatus.message}
+                </span>
+              </div>
+            )}
+
             {/* Recommendation Cards Section */}
             <div style={{ marginBottom: 20 }}>
               <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.35rem', color: '#fff', margin: '0 0 6px' }}>

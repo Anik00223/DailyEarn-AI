@@ -1,6 +1,15 @@
-import { env } from './env';
+import { env, isGroqConfigured } from './env';
 
-export type GroqErrorType = 'rate_limit' | 'invalid_key' | 'model_error' | 'timeout' | 'validation_failed' | 'unknown';
+export type GroqErrorType =
+  | 'unconfigured'
+  | 'rate_limit'
+  | 'invalid_key'
+  | 'model_error'
+  | 'timeout'
+  | 'validation_failed'
+  | 'bad_request'
+  | 'network_error'
+  | 'unknown';
 
 export interface GroqError {
   type: GroqErrorType;
@@ -8,26 +17,76 @@ export interface GroqError {
   retryable: boolean;
 }
 
-function classifyError(error: unknown, status?: number): GroqError {
-  const message = error instanceof Error ? error.message : String(error);
-  const lowerMessage = message.toLowerCase();
+function maskSecretInText(text: string): string {
+  if (!text) return '';
+  return text.replace(/gsk_[a-zA-Z0-9_-]{10,}/g, 'gsk_***');
+}
 
-  if (status === 429 || lowerMessage.includes('429') || lowerMessage.includes('rate limit') || lowerMessage.includes('quota')) {
-    return { type: 'rate_limit', message: 'API rate limit exceeded', retryable: true };
+export function classifyError(error: unknown, status?: number, errorDetail?: string): GroqError {
+  const rawMessage = error instanceof Error ? error.message : String(error);
+  const message = maskSecretInText(rawMessage);
+  const lowerMessage = message.toLowerCase();
+  const lowerDetail = (errorDetail || '').toLowerCase();
+
+  if (lowerMessage.includes('unconfigured') || lowerMessage.includes('placeholder')) {
+    return {
+      type: 'unconfigured',
+      message: 'Groq API is not configured or contains placeholder credentials',
+      retryable: false,
+    };
   }
-  if (status === 401 || status === 403 || lowerMessage.includes('api key') || lowerMessage.includes('invalid api key')) {
-    return { type: 'invalid_key', message: 'Invalid API key', retryable: false };
+  if (
+    status === 401 ||
+    status === 403 ||
+    lowerMessage.includes('api key') ||
+    lowerDetail.includes('invalid api key') ||
+    lowerDetail.includes('unauthorized')
+  ) {
+    return {
+      type: 'invalid_key',
+      message: 'Groq API authentication failed. Verify GROQ_API_KEY in environment.',
+      retryable: false,
+    };
   }
-  if (lowerMessage.includes('validation failed') || lowerMessage.includes('json') || lowerMessage.includes('parse')) {
-    return { type: 'validation_failed', message: 'Response validation failed', retryable: true };
+  if (status === 404 || lowerDetail.includes('model') || lowerMessage.includes('model not found')) {
+    return {
+      type: 'model_error',
+      message: `Configured Groq model (${env.GROQ_MODEL}) is not available or not found`,
+      retryable: false,
+    };
+  }
+  if (
+    status === 429 ||
+    lowerMessage.includes('429') ||
+    lowerMessage.includes('rate limit') ||
+    lowerDetail.includes('rate limit')
+  ) {
+    return { type: 'rate_limit', message: 'Groq API rate limit exceeded', retryable: true };
+  }
+  if (status === 400 || lowerDetail.includes('bad request')) {
+    return {
+      type: 'bad_request',
+      message: `Groq API bad request: ${maskSecretInText(errorDetail || message)}`,
+      retryable: false,
+    };
+  }
+  if (lowerMessage.includes('validation failed') || lowerMessage.includes('json parse')) {
+    return { type: 'validation_failed', message: 'AI response failed schema validation', retryable: true };
   }
   if (lowerMessage.includes('timeout') || lowerMessage.includes('deadline') || lowerMessage.includes('aborted')) {
-    return { type: 'timeout', message: 'Request timed out', retryable: true };
+    return { type: 'timeout', message: 'Groq API request timed out', retryable: true };
+  }
+  if (
+    lowerMessage.includes('fetch failed') ||
+    lowerMessage.includes('econnrefused') ||
+    lowerMessage.includes('enotfound')
+  ) {
+    return { type: 'network_error', message: 'Network connection to api.groq.com failed', retryable: true };
   }
   if (status && status >= 500) {
-    return { type: 'model_error', message: `Server error (${status})`, retryable: true };
+    return { type: 'model_error', message: `Groq upstream server error (${status})`, retryable: true };
   }
-  return { type: 'unknown', message, retryable: false };
+  return { type: 'unknown', message: errorDetail || message, retryable: false };
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -38,6 +97,11 @@ export async function generateContent(
   prompt: string,
   validator?: (text: string) => boolean
 ): Promise<string> {
+  // Short-circuit immediately if Groq credentials are not configured or placeholder
+  if (!isGroqConfigured()) {
+    throw new Error('Groq API error (unconfigured): GROQ_API_KEY is not configured or contains placeholder text');
+  }
+
   const maxAttempts = 3;
   const baseDelay = 1500; // 1.5s -> 3s -> 6s exponential backoff
   const timeoutMs = 30000;
@@ -50,11 +114,11 @@ export async function generateContent(
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+          Authorization: `Bearer ${env.GROQ_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: env.GROQ_MODEL,
           messages: [
             {
               role: 'user',
@@ -72,10 +136,20 @@ export async function generateContent(
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`HTTP_ERROR_STATUS_${response.status}: ${response.statusText}`);
+        let safeDetail = '';
+        try {
+          const errText = await response.text();
+          const parsed = JSON.parse(errText);
+          safeDetail = parsed.error?.message || '';
+        } catch {
+          // ignore parsing error
+        }
+        throw new Error(
+          `HTTP_ERROR_STATUS_${response.status}${safeDetail ? ': ' + maskSecretInText(safeDetail) : ''}`
+        );
       }
 
-      const responseData = await response.json() as {
+      const responseData = (await response.json()) as {
         choices?: Array<{
           message?: {
             content?: string;
@@ -95,16 +169,17 @@ export async function generateContent(
 
       return text;
     } catch (error) {
-      // Determine status code if HTTP error
       let status: number | undefined;
-      const match = (error instanceof Error ? error.message : '').match(/HTTP_ERROR_STATUS_(\d+)/);
+      let detail: string | undefined;
+      const match = (error instanceof Error ? error.message : '').match(/HTTP_ERROR_STATUS_(\d+)(?:: (.*))?/);
       if (match && match[1]) {
         status = parseInt(match[1], 10);
+        detail = match[2];
       }
 
-      const classified = classifyError(error, status);
+      const classified = classifyError(error, status, detail);
 
-      console.error(
+      console.warn(
         `[Groq] Attempt ${attempt}/${maxAttempts} failed: ${classified.type} - ${classified.message}`
       );
 
@@ -120,3 +195,4 @@ export async function generateContent(
 
   throw new Error('Groq API: all retry attempts exhausted');
 }
+

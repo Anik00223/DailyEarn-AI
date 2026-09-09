@@ -6,6 +6,7 @@ import { buildIdeaPrompt, generateIdeaHash } from './ideas.prompt';
 import { geminiResponseSchema } from './ideas.schema';
 import type { GenerateIdeasInput, GeminiIdea } from './ideas.schema';
 import { ideaQueue } from '../../queues/ideaGeneration.queue';
+import { generateContent } from '../../config/groq';
 import { redisGet, redisSet } from '../../config/redis';
 
 const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6 hours
@@ -52,15 +53,23 @@ export async function generateIdeas(
     count: params.count,
   });
 
-  // 4. Add generation job to Bull Queue and await finished result
+  // 4. Add generation job to Bull Queue (with direct in-memory fallback if Redis is offline)
   let rawResponse: string;
   try {
     const job = await ideaQueue.add({ prompt, userId });
-    const result = await job.finished() as { rawResponse: string };
+    const result = (await job.finished()) as { rawResponse: string };
     rawResponse = result.rawResponse;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    throw createError(502, 'IDEA_GENERATION_FAILED', `AI generation failed: ${message}`);
+  } catch (queueError) {
+    console.warn(
+      '[Ideas] Bull queue execution failed or Redis offline, falling back to direct AI generation:',
+      queueError instanceof Error ? queueError.message : queueError
+    );
+    try {
+      rawResponse = await generateContent(prompt);
+    } catch (groqError) {
+      const message = groqError instanceof Error ? groqError.message : 'Unknown error';
+      throw createError(502, 'IDEA_GENERATION_FAILED', `AI generation failed: ${message}`);
+    }
   }
 
   // 5. Parse response (guaranteed to succeed and validate due to validator hook)

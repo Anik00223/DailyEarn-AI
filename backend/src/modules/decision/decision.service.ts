@@ -9,10 +9,24 @@ import { optimizeIncomeMix } from '../../engines/incomeMixOptimizer';
 import { analyzeTargetGap } from '../../engines/targetGapEngine';
 import { generate7DayExecutionPlan } from '../../engines/executionPlanEngine';
 import { buildDecisionEnrichmentPrompt } from './decision.prompt';
-import { generateContent } from '../../config/groq';
+import { generateContent, classifyError } from '../../config/groq';
+import { env, isGroqConfigured } from '../../config/env';
 import type { UserConstraints, EvaluatedOpportunity, FeasibilityVerdict, IncomeMixBundle } from '../../engines/types';
 import { aiEnrichmentResponseSchema, type EvaluateDecisionInput, type SimulatorRecalculateInput, type RecordOutcomeInput, type SavePlanInput } from './decision.schema';
 import { desc, eq, count, sql } from 'drizzle-orm';
+
+export interface AiEnrichmentStatus {
+  status:
+    | 'applied'
+    | 'fallback_unconfigured'
+    | 'fallback_auth_error'
+    | 'fallback_rate_limit'
+    | 'fallback_timeout'
+    | 'fallback_validation_error'
+    | 'fallback_error';
+  message: string;
+  model: string;
+}
 
 export interface DecisionResult {
   id?: string;
@@ -22,6 +36,7 @@ export interface DecisionResult {
   recommendations: Array<EvaluatedOpportunity & { whyRecommended?: string }>;
   constraints: UserConstraints;
   primary7DayPlan: ReturnType<typeof generate7DayExecutionPlan> | null;
+  aiStatus?: AiEnrichmentStatus;
 }
 
 export function sanitizeAiRationale(
@@ -69,8 +84,10 @@ export function sanitizeAiRationale(
   text = text
     .replace(/\b(?:gap|shortfall)\s*(?:of|:)?\s*₹?\s*[\d,]+/gi, '');
 
-  // Clean up punctuation artifacts after stripping
+  // Clean up punctuation artifacts and residual symbols after stripping
   text = text
+    .replace(/\(\s*\)/g, '')
+    .replace(/\s*~\s*/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .replace(/\s*,\s*,/g, ',')
     .replace(/^[,.\-:\s]+|[,\-:\s]+$/g, '')
@@ -141,40 +158,87 @@ export async function evaluateDecision(
   const targetGapAnalysis = analyzeTargetGap(constraints, topOpps[0], incomeMix);
 
   // 7. AI Enrichment for Hyper-Local Nuance & Localized Tips (Groq LLaMA 3.3 70B)
-  let whyRecommended = topOpps[0]?.scoring.primaryReason || 'Top verified match based on skill and constraint alignment.';
-  try {
-    const prompt = buildDecisionEnrichmentPrompt(constraints, topOpps, feasibility);
-    const rawAi = await generateContent(prompt);
-    
-    let cleaned = rawAi.trim();
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-    }
-    const rawParsed = JSON.parse(cleaned);
-    const validatedAi = aiEnrichmentResponseSchema.safeParse(rawParsed);
+  const defaultQualitativeRationale = `Strong alignment with your declared skills and verified local demand in ${constraints.city}.`;
+  let whyRecommended = defaultQualitativeRationale;
+  let aiStatus: AiEnrichmentStatus;
 
-    if (validatedAi.success) {
-      if (validatedAi.data.why_recommended) {
-        whyRecommended = validatedAi.data.why_recommended;
+  if (!isGroqConfigured()) {
+    aiStatus = {
+      status: 'fallback_unconfigured',
+      message: 'AI service configuration problem (GROQ_API_KEY is not set or contains placeholder text). Deterministic engine active.',
+      model: env.GROQ_MODEL,
+    };
+    whyRecommended = defaultQualitativeRationale;
+  } else {
+    try {
+      const prompt = buildDecisionEnrichmentPrompt(constraints, topOpps, feasibility);
+      const rawAi = await generateContent(prompt);
+
+      let cleaned = rawAi.trim();
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
       }
+      const rawParsed = JSON.parse(cleaned);
+      const validatedAi = aiEnrichmentResponseSchema.safeParse(rawParsed);
 
-      if (Array.isArray(validatedAi.data.tips)) {
-        for (const tipItem of validatedAi.data.tips) {
-          const match = topOpps.find((o) => o.opportunity.slug === tipItem.slug);
-          if (match) {
-            match.cityTip = tipItem.city_specific_tip;
+      if (validatedAi.success) {
+        if (validatedAi.data.why_recommended) {
+          whyRecommended = validatedAi.data.why_recommended;
+        }
+
+        if (Array.isArray(validatedAi.data.tips)) {
+          for (const tipItem of validatedAi.data.tips) {
+            const match = topOpps.find((o) => o.opportunity.slug === tipItem.slug);
+            if (match) {
+              match.cityTip = tipItem.city_specific_tip;
+            }
           }
         }
+
+        aiStatus = {
+          status: 'applied',
+          message: 'AI qualitative rationale and localized tips generated successfully.',
+          model: env.GROQ_MODEL,
+        };
+      } else {
+        console.warn(
+          '[Decision AI] AI response failed qualitative validation schema (falling back to deterministic rationale):',
+          validatedAi.error.issues
+        );
+        aiStatus = {
+          status: 'fallback_validation_error',
+          message: 'Invalid AI response format received. Deterministic engine fallback applied.',
+          model: env.GROQ_MODEL,
+        };
+        whyRecommended = defaultQualitativeRationale;
       }
-    } else {
-      console.warn(
-        '[Decision AI] AI response failed qualitative validation schema (falling back to deterministic rationale):',
-        validatedAi.error.issues
-      );
-      whyRecommended = topOpps[0]?.scoring.primaryReason || 'Top verified match based on skill and constraint alignment.';
+    } catch (error) {
+      const classified = classifyError(error);
+      let statusKind: AiEnrichmentStatus['status'] = 'fallback_error';
+      let safeMsg = 'AI service temporarily unavailable. Deterministic engine active.';
+
+      if (classified.type === 'invalid_key') {
+        statusKind = 'fallback_auth_error';
+        safeMsg = 'AI service authentication problem (invalid or revoked API key). Deterministic engine active.';
+      } else if (classified.type === 'rate_limit') {
+        statusKind = 'fallback_rate_limit';
+        safeMsg = 'AI service rate limit reached. Deterministic engine active.';
+      } else if (classified.type === 'timeout') {
+        statusKind = 'fallback_timeout';
+        safeMsg = 'Network/service timeout while contacting AI service. Deterministic engine active.';
+      } else if (classified.type === 'unconfigured') {
+        statusKind = 'fallback_unconfigured';
+        safeMsg = 'AI service configuration problem. Deterministic engine active.';
+      }
+
+      aiStatus = {
+        status: statusKind,
+        message: safeMsg,
+        model: env.GROQ_MODEL,
+      };
+      console.warn('[Decision AI] Local enrichment failed (falling back to deterministic tips):', classified.message);
+      whyRecommended = defaultQualitativeRationale;
     }
-  } catch (error) {
-    console.warn('[Decision AI] Local enrichment failed (falling back to deterministic tips):', error instanceof Error ? error.message : error);
   }
 
   // Ensure default city tip if AI was skipped or missing
@@ -260,6 +324,7 @@ export async function evaluateDecision(
     }),
     constraints,
     primary7DayPlan,
+    aiStatus,
   };
 }
 

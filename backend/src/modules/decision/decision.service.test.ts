@@ -7,12 +7,14 @@ vi.mock('../../config/env', () => ({
     DATABASE_URL: 'postgresql://localhost:5432/test',
     REDIS_URL: 'redis://localhost:6379',
     GROQ_API_KEY: 'test_groq_api_key_for_testing_purposes',
+    GROQ_MODEL: 'llama-3.3-70b-versatile',
     JWT_ACCESS_SECRET: 'test_access_secret_64chars_minimum_so_zod_does_not_fail_validation_schema',
     JWT_REFRESH_SECRET: 'test_refresh_secret_64chars_minimum_so_zod_does_not_fail_validation_schema',
     BCRYPT_ROUNDS: 12,
     CORS_ORIGIN: 'http://localhost:5173',
     ADMIN_SECRET: 'test_admin_secret_32chars_minimum_ok',
   },
+  isGroqConfigured: vi.fn().mockReturnValue(true),
 }));
 
 vi.mock('../../config/groq', () => ({
