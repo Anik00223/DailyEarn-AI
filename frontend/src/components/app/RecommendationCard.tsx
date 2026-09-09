@@ -51,18 +51,18 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
       case 'VERIFIED':
-        return { bg: 'rgba(0, 255, 136, 0.1)', color: '#00FF88', border: 'rgba(0, 255, 136, 0.3)' };
+        return { bg: 'rgba(0, 242, 254, 0.12)', color: 'var(--accent)', border: 'rgba(0, 242, 254, 0.3)' };
       case 'PARTIALLY_VERIFIED':
-        return { bg: 'rgba(255, 170, 0, 0.1)', color: '#FFAA00', border: 'rgba(255, 170, 0, 0.3)' };
+        return { bg: 'rgba(255, 170, 0, 0.12)', color: '#FFAA00', border: 'rgba(255, 170, 0, 0.3)' };
       case 'DYNAMIC':
-        return { bg: 'rgba(0, 229, 255, 0.1)', color: '#00E5FF', border: 'rgba(0, 229, 255, 0.3)' };
+        return { bg: 'rgba(114, 246, 255, 0.12)', color: '#72F6FF', border: 'rgba(114, 246, 255, 0.3)' };
       case 'ESTIMATED':
-        return { bg: 'rgba(129, 140, 248, 0.1)', color: '#818CF8', border: 'rgba(129, 140, 248, 0.3)' };
+        return { bg: 'rgba(129, 140, 248, 0.12)', color: '#818CF8', border: 'rgba(129, 140, 248, 0.3)' };
       case 'EXPIRED':
-        return { bg: 'rgba(255, 100, 50, 0.1)', color: '#FF6432', border: 'rgba(255, 100, 50, 0.3)' };
+        return { bg: 'rgba(255, 100, 50, 0.12)', color: '#FF6432', border: 'rgba(255, 100, 50, 0.3)' };
       case 'UNVERIFIED':
       default:
-        return { bg: 'rgba(255, 51, 102, 0.1)', color: '#FF3366', border: 'rgba(255, 51, 102, 0.3)' };
+        return { bg: 'rgba(255, 77, 106, 0.12)', color: 'var(--danger)', border: 'rgba(255, 77, 106, 0.3)' };
     }
   };
 
@@ -91,20 +91,14 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
     }
   }
 
-  // 3D tilt on mousemove
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseEnter = useCallback(() => {
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const rotateY = ((e.clientX - centerX) / rect.width) * 3;
-    const rotateX = ((centerY - e.clientY) / rect.height) * 4;
-    cardRef.current.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-3px)`;
+    cardRef.current.style.transform = 'translateY(-2px)';
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     if (!cardRef.current) return;
-    cardRef.current.style.transform = 'perspective(800px) rotateX(0) rotateY(0) translateY(0)';
+    cardRef.current.style.transform = 'translateY(0)';
   }, []);
 
   const handleSave = () => {
@@ -115,24 +109,20 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
   return (
     <article
       ref={cardRef}
+      className="product-card"
       style={{
-        background: 'rgba(13, 13, 20, 0.85)',
-        border: displayedRank === 1 ? '1px solid rgba(0, 255, 136, 0.4)' : '1px solid var(--accent-border)',
+        border: displayedRank === 1 ? '1px solid var(--accent)' : '1px solid var(--border)',
         borderRadius: 'var(--radius-md)',
-        boxShadow: displayedRank === 1 ? '0 0 24px rgba(0, 255, 136, 0.08)' : 'var(--glow-card)',
-        backdropFilter: 'blur(16px)',
-        padding: 24,
-        transition: 'border-color 0.3s, box-shadow 0.3s',
+        boxShadow: 'var(--shadow-sm)',
+        padding: '24px 26px',
+        transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        gap: 16,
+        gap: 18,
       }}
-      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onMouseEnter={() => {
-        if (cardRef.current) cardRef.current.style.borderColor = 'var(--accent-border-h)';
-      }}
     >
       {/* HEADER: Rank / Best Match, Verified Badge, Platform, Opportunity Score */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
@@ -142,24 +132,26 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
               style={{
                 fontFamily: 'var(--font-label)',
                 fontSize: '0.68rem',
-                letterSpacing: '0.08em',
-                fontWeight: 700,
-                background: 'rgba(0, 255, 136, 0.15)',
-                color: '#00FF88',
-                border: '1px solid rgba(0, 255, 136, 0.35)',
-                padding: '3px 8px',
-                borderRadius: 4,
+                letterSpacing: '0.12em',
+                fontWeight: 800,
+                background: 'rgba(0, 242, 254, 0.14)',
+                color: 'var(--accent)',
+                border: '1px solid rgba(0, 242, 254, 0.4)',
+                padding: '3px 10px',
+                borderRadius: 6,
+                textTransform: 'uppercase',
               }}
             >
-              BEST MATCH
+              ★ BEST MATCH
             </span>
           ) : (
             <span
               style={{
                 fontFamily: 'var(--font-label)',
-                fontSize: '0.7rem',
+                fontSize: '0.72rem',
                 color: 'var(--text-muted)',
-                fontWeight: 600,
+                fontWeight: 700,
+                letterSpacing: '0.05em',
               }}
             >
               #{displayedRank}
@@ -170,12 +162,12 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
             style={{
               fontFamily: 'var(--font-label)',
               fontSize: '0.7rem',
-              letterSpacing: '0.04em',
+              letterSpacing: '0.06em',
               background: getStatusBadgeStyle(opp.verificationStatus).bg,
               border: `1px solid ${getStatusBadgeStyle(opp.verificationStatus).border}`,
               color: getStatusBadgeStyle(opp.verificationStatus).color,
-              borderRadius: 4,
-              padding: '3px 8px',
+              borderRadius: 6,
+              padding: '3px 9px',
               display: 'flex',
               alignItems: 'center',
               gap: 5,
@@ -191,9 +183,10 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
               fontFamily: 'var(--font-label)',
               fontSize: '0.7rem',
               color: 'var(--text-muted)',
-              background: 'rgba(255,255,255,0.05)',
-              borderRadius: 4,
-              padding: '3px 8px',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 6,
+              padding: '3px 9px',
             }}
           >
             {opp.platform}
@@ -205,14 +198,15 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
           <button
             onClick={() => setShowScoreDetails(!showScoreDetails)}
             style={{
-              background: displayedScore >= 80 ? 'rgba(0, 255, 136, 0.15)' : 'rgba(255, 170, 0, 0.15)',
-              border: `1px solid ${displayedScore >= 80 ? 'rgba(0, 255, 136, 0.4)' : 'rgba(255, 170, 0, 0.4)'}`,
+              background: displayedScore >= 80 ? 'rgba(0, 242, 254, 0.12)' : 'rgba(255, 170, 0, 0.12)',
+              border: `1px solid ${displayedScore >= 80 ? 'rgba(0, 242, 254, 0.4)' : 'rgba(255, 170, 0, 0.4)'}`,
               borderRadius: 20,
               padding: '4px 12px',
-              color: displayedScore >= 80 ? '#00FF88' : '#FFAA00',
-              fontFamily: 'var(--font-display)',
-              fontSize: '0.85rem',
+              color: displayedScore >= 80 ? 'var(--accent)' : '#FFAA00',
+              fontFamily: 'var(--font-label)',
+              fontSize: '0.8rem',
               fontWeight: 700,
+              letterSpacing: '0.04em',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -220,46 +214,46 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
             }}
             title="Click to view scoring breakdown"
           >
-            Score {displayedScore}/100
+            {displayedScore}/100 Match
             <HelpCircle size={13} />
           </button>
 
           {/* Score breakdown tooltip */}
           {showScoreDetails && (
             <div
+              className="obsidian-card"
               style={{
                 position: 'absolute',
                 top: 'calc(100% + 8px)',
                 right: 0,
-                width: 250,
-                background: 'rgba(10, 10, 15, 0.95)',
-                border: '1px solid var(--accent-border-h)',
-                borderRadius: 8,
-                padding: 12,
-                boxShadow: 'var(--glow-card)',
+                width: 260,
+                borderRadius: 12,
+                padding: 14,
                 zIndex: 40,
                 fontSize: '0.75rem',
                 color: 'var(--text-secondary)',
               }}
             >
-              <div style={{ fontWeight: 700, color: '#fff', marginBottom: 6 }}>Scoring Breakdown:</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span>Skill Match:</span> <b>{score.skillFit}/100</b>
+              <div style={{ fontWeight: 700, color: '#fff', marginBottom: 8, fontFamily: 'var(--font-label)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                Scoring Breakdown:
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span>Location Fit:</span> <b>{score.locationFit}/100</b>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Skill Match:</span> <b style={{ color: '#fff' }}>{score.skillFit}/100</b>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span>Time Fit:</span> <b>{score.timeFit}/100</b>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Location Fit:</span> <b style={{ color: '#fff' }}>{score.locationFit}/100</b>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span>Target Alignment:</span> <b>{score.targetFit}/100</b>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Time Fit:</span> <b style={{ color: '#fff' }}>{score.timeFit}/100</b>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span>Platform Reliability:</span> <b>{score.reliability}/100</b>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Target Alignment:</span> <b style={{ color: '#fff' }}>{score.targetFit}/100</b>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Platform Reliability:</span> <b style={{ color: '#fff' }}>{score.reliability}/100</b>
               </div>
               {score.complexityPenalty > 0 && (
-                <div style={{ color: 'var(--danger)', marginTop: 4 }}>
+                <div style={{ color: 'var(--danger)', marginTop: 6, paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                   Vehicle / Asset Penalty: −{score.complexityPenalty}
                 </div>
               )}
@@ -271,11 +265,20 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
       {/* EARNINGS HERO: NET DAILY EARNINGS & RANGE */}
       <div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: '2.1rem', fontWeight: 700, color: 'var(--accent)' }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '2.3rem',
+              fontWeight: 800,
+              color: 'var(--accent)',
+              textShadow: '0 0 25px rgba(0, 242, 254, 0.3)',
+              letterSpacing: '-0.02em',
+            }}
+          >
             {formatINR(fin.netDaily)}
           </span>
-          <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>
-            Estimated NET / day
+          <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.85rem', color: '#fff', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            NET ESTIMATE / DAY
           </span>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             (Gross: {formatINR(fin.grossDaily)})
@@ -291,8 +294,8 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
             <span
               style={{
                 fontFamily: 'var(--font-label)',
-                fontSize: '0.74rem',
-                color: conf.confidencePercent >= 80 ? '#00FF88' : '#FFAA00',
+                fontSize: '0.72rem',
+                color: conf.confidencePercent >= 80 ? 'var(--accent)' : '#FFAA00',
                 background: 'rgba(255,255,255,0.04)',
                 padding: '2px 8px',
                 borderRadius: 4,
@@ -301,10 +304,10 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
               }}
               title="Evidence-based heuristic score. Not a probability of earnings."
             >
-              Recommendation Confidence: {conf.confidencePercent}/100
+              Confidence: {conf.confidencePercent}/100
             </span>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-              (Heuristic score · Not guaranteed earnings)
+              (Heuristic calibration)
             </span>
           </div>
         </div>
@@ -312,10 +315,10 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
 
       {/* TITLE & DESCRIPTION */}
       <div>
-        <h3 style={{ fontFamily: 'var(--font-body)', fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 700, color: '#FFFFFF', margin: '0 0 6px' }}>
           {opp.opportunityName}
         </h3>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
           {opp.description}
         </p>
       </div>
@@ -324,15 +327,16 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
       {(item.whyRecommended || score.primaryReason) && (
         <div
           style={{
-            background: 'rgba(0, 255, 136, 0.04)',
+            background: 'rgba(0, 242, 254, 0.04)',
             borderLeft: '3px solid var(--accent)',
-            padding: '8px 12px',
-            borderRadius: '0 6px 6px 0',
-            fontSize: '0.82rem',
+            padding: '10px 14px',
+            borderRadius: '0 8px 8px 0',
+            fontSize: '0.84rem',
             color: 'var(--text-secondary)',
+            lineHeight: 1.5,
           }}
         >
-          <strong style={{ color: '#fff' }}>Why this ranked #{displayedRank} ({displayedScore}/100):</strong>{' '}
+          <strong style={{ color: '#fff' }}>Why this fits:</strong>{' '}
           <span>{item.whyRecommended || score.primaryReason}</span>
         </div>
       )}
@@ -376,13 +380,22 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
         </div>
 
         {showMath && (
-          <div style={{ marginTop: 10, background: 'rgba(5, 5, 8, 0.7)', border: '1px solid var(--accent-border)', padding: 12, borderRadius: 6, fontSize: '0.8rem' }}>
-            <div style={{ fontFamily: 'var(--font-label)', color: '#00FF88', marginBottom: 6, fontWeight: 600 }}>
+          <div
+            style={{
+              marginTop: 12,
+              background: 'rgba(6, 18, 26, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              padding: '14px 16px',
+              borderRadius: 12,
+              fontSize: '0.82rem',
+            }}
+          >
+            <div style={{ fontFamily: 'var(--font-label)', color: 'var(--accent)', marginBottom: 8, fontWeight: 700, letterSpacing: '0.04em' }}>
               {fin.formulaExplanation}
             </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', lineHeight: 1.5 }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.6 }}>
               {fin.assumptions.map((asm, idx) => (
-                <div key={idx}>• {asm}</div>
+                <div key={idx} style={{ marginBottom: 2 }}>• {asm}</div>
               ))}
             </div>
           </div>
@@ -669,7 +682,7 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
       )}
 
       {/* ACTION FOOTER */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 'auto', paddingTop: 10 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 'auto', paddingTop: 12, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
         {/* Primary Action: Build my 7-day plan */}
         <button
           onClick={() => {
@@ -690,25 +703,16 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
             };
             setActivePlan(plan);
           }}
+          className="btn-primary"
           style={{
-            flex: '1 1 160px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            padding: '10px 14px',
+            flex: '1 1 150px',
+            padding: '9px 14px',
+            fontSize: '0.82rem',
+            minHeight: 38,
             borderRadius: 'var(--radius-sm)',
-            fontSize: '0.84rem',
-            fontFamily: 'var(--font-display)',
-            background: 'var(--accent)',
-            color: '#000',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
-            minHeight: 40,
           }}
         >
-          <Calendar size={14} /> Build my 7-day plan
+          <Calendar size={14} /> 7-Day Plan
         </button>
 
         {/* Start on platform */}
@@ -717,22 +721,25 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            flex: '1 1 110px',
+            flex: '1 1 100px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            padding: '10px 12px',
+            padding: '9px 14px',
             borderRadius: 'var(--radius-sm)',
             fontSize: '0.8rem',
-            fontFamily: 'var(--font-display)',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid var(--accent-border)',
+            fontFamily: 'var(--font-label)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
             color: '#fff',
-            fontWeight: 600,
+            fontWeight: 500,
             textDecoration: 'none',
-            minHeight: 40,
+            minHeight: 38,
+            transition: 'border-color 0.2s',
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
         >
           Start Now <ExternalLink size={13} />
         </a>
@@ -744,17 +751,27 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
             padding: '9px 12px',
             borderRadius: 'var(--radius-sm)',
             fontSize: '0.8rem',
-            background: 'transparent',
-            border: '1px solid var(--accent-border)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
             color: 'var(--text-secondary)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 5,
+            minHeight: 38,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--accent)';
+            e.currentTarget.style.color = '#fff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
           }}
           title="Open interactive income simulator"
         >
-          <Sliders size={13} />
+          <Sliders size={14} />
         </button>
 
         {/* Record Outcome */}
@@ -764,17 +781,27 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
             padding: '9px 12px',
             borderRadius: 'var(--radius-sm)',
             fontSize: '0.8rem',
-            background: 'transparent',
-            border: '1px solid var(--accent-border)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
             color: 'var(--text-secondary)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 5,
+            minHeight: 38,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--accent)';
+            e.currentTarget.style.color = '#fff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
           }}
           title="Report actual earnings"
         >
-          <CheckSquare size={13} />
+          <CheckSquare size={14} />
         </button>
 
         {/* Judge Attack Mode */}
@@ -783,19 +810,24 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
           style={{
             padding: '9px 12px',
             borderRadius: 'var(--radius-sm)',
-            fontSize: '0.8rem',
-            background: 'rgba(0, 229, 255, 0.08)',
-            border: '1px solid rgba(0, 229, 255, 0.35)',
-            color: '#00E5FF',
+            fontSize: '0.78rem',
+            fontFamily: 'var(--font-label)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            color: 'var(--accent)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: 5,
+            gap: 6,
             fontWeight: 600,
+            minHeight: 38,
+            transition: 'all 0.2s',
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
           title="Judge Attack Mode: Inspect math tree, 8-factor score weights, and evidence citations"
         >
-          <ShieldCheck size={13} /> Judge Trace
+          <ShieldCheck size={13} /> Audit Trace
         </button>
 
         {/* Save */}
@@ -805,10 +837,15 @@ export function RecommendationCard({ item, onSave, onDismiss, index = 0 }: Recom
             padding: '9px 12px',
             borderRadius: 'var(--radius-sm)',
             fontSize: '0.8rem',
-            background: isSaved ? 'rgba(0,255,136,0.1)' : 'transparent',
-            border: `1px solid ${isSaved ? 'var(--accent)' : 'var(--accent-border)'}`,
+            background: isSaved ? 'rgba(0, 180, 216, 0.12)' : 'var(--bg-surface)',
+            border: `1px solid ${isSaved ? 'var(--accent)' : 'var(--border)'}`,
             color: isSaved ? 'var(--accent)' : 'var(--text-muted)',
             cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 38,
+            transition: 'all 0.2s',
           }}
           title="Save opportunity"
         >

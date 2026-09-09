@@ -1,98 +1,178 @@
-import { useEffect, useState, useRef } from 'react';
 import { useScrollReveal } from '../../hooks/useScrollAnimation';
+import { ShieldCheck, Scale, Fuel, Lock } from 'lucide-react';
+import { useDecisionStore } from '../../store/decisionStore';
 
-interface StatItem {
-  value: number;
-  suffix: string;
-  label: string;
-}
-
-const stats: StatItem[] = [
-  { value: 12, suffix: 'K+', label: 'Users Earning Smarter' },
-  { value: 240, suffix: 'Cr+', label: 'In Ideas Generated' },
-  { value: 500, suffix: '+', label: 'Indian Cities Covered' },
-  { value: 35, suffix: '+', label: 'Platforms Integrated' },
+const principles = [
+  {
+    icon: Scale,
+    title: 'Zero Affiliate Bias',
+    description:
+      'We accept zero referral revenue from gig platforms or job boards. Recommendations are ranked solely by mathematical fit with your constraints.',
+  },
+  {
+    icon: Fuel,
+    title: 'Real-World Deductions',
+    description:
+      'Platform commission rates (10–25%) and fuel operating costs (₹7.3/km for two-wheelers) are deducted before displaying any take-home figure.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Physical Delivery Ceilings',
+    description:
+      'We cap delivery models at a verified 1.6 orders/hour ceiling to account for actual restaurant prep delays and Tier-2 traffic conditions.',
+  },
+  {
+    icon: Lock,
+    title: 'Separation of Math & AI',
+    description:
+      'Calculations are 100% deterministic code. Groq AI is restricted to qualitative localized guidance and 7-day milestone planning.',
+  },
 ];
-
-function CountUpNumber({ target, suffix }: { target: number; suffix: string }) {
-  const [current, setCurrent] = useState(0);
-  const [hasStarted, setHasStarted] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasStarted) setHasStarted(true);
-      },
-      { threshold: 0.5 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasStarted]);
-
-  useEffect(() => {
-    if (!hasStarted) return;
-    const duration = 2000;
-    const startTime = performance.now();
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCurrent(Math.floor(eased * target));
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }, [hasStarted, target]);
-
-  return <span ref={ref}>{current}{suffix}</span>;
-}
 
 export function StatsSection() {
   const ref = useScrollReveal<HTMLElement>();
+  const { setTrustCenterOpen } = useDecisionStore();
 
   return (
     <section
       ref={ref}
       style={{
-        padding: '100px 24px',
-        maxWidth: 1100,
+        padding: '100px 24px 110px',
+        maxWidth: 1200,
         margin: '0 auto',
+        position: 'relative',
+        zIndex: 1,
       }}
     >
+      <div style={{ maxWidth: 720, marginBottom: 48 }}>
+        <span
+          data-reveal
+          style={{
+            fontFamily: 'var(--font-label)',
+            fontSize: '0.74rem',
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+            display: 'block',
+            marginBottom: 10,
+          }}
+        >
+          Trust & Provenance
+        </span>
+        <h2
+          data-reveal
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(1.9rem, 3.4vw, 2.7rem)',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            color: '#FFFFFF',
+            lineHeight: 1.2,
+            marginBottom: 14,
+          }}
+        >
+          Architected for mathematical honesty.
+        </h2>
+        <p
+          data-reveal
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.98rem',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.6,
+          }}
+        >
+          Most gig portals inflate earnings with promotional bonuses that vanish in week two. DailyEarn is intentionally conservative, factoring in genuine operating friction.
+        </p>
+      </div>
+
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 32,
-          textAlign: 'center',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: 20,
         }}
       >
-        {stats.map((stat, index) => (
-          <div key={index} data-reveal>
-            <div
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-                fontWeight: 900,
-                color: 'var(--accent)',
-                marginBottom: 8,
-              }}
-            >
-              <CountUpNumber target={stat.value} suffix={stat.suffix} />
+        {principles.map((p, idx) => (
+          <div
+            key={idx}
+            data-reveal
+            className="product-card"
+            style={{
+              padding: '28px 24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 18,
+                }}
+              >
+                <p.icon size={18} color="var(--accent)" />
+              </div>
+
+              <h3
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.08rem',
+                  fontWeight: 600,
+                  color: '#FFFFFF',
+                  marginBottom: 8,
+                }}
+              >
+                {p.title}
+              </h3>
+
+              <p
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.88rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.6,
+                  margin: 0,
+                }}
+              >
+                {p.description}
+              </p>
             </div>
-            <p
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.95rem',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              {stat.label}
-            </p>
           </div>
         ))}
+      </div>
+
+      <div
+        data-reveal
+        style={{
+          marginTop: 32,
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        <button
+          onClick={() => setTrustCenterOpen(true)}
+          className="btn-secondary"
+          style={{
+            fontSize: '0.84rem',
+            padding: '10px 20px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <ShieldCheck size={16} color="var(--accent)" />
+          Open Full Engine Verification Audit
+        </button>
       </div>
     </section>
   );

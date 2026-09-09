@@ -84,8 +84,8 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
         position: 'fixed',
         inset: 0,
         zIndex: 150,
-        background: 'rgba(0, 0, 0, 0.78)',
-        backdropFilter: 'blur(10px)',
+        background: 'rgba(2, 6, 9, 0.85)',
+        backdropFilter: 'blur(16px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -96,92 +96,128 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
       }}
     >
       <div
+        className="obsidian-card"
         style={{
-          background: 'var(--surface-primary)',
-          border: '1px solid var(--accent-border)',
-          borderRadius: 'var(--radius-lg)',
+          borderRadius: 24,
           width: '100%',
-          maxWidth: 620,
+          maxWidth: 640,
           maxHeight: '90vh',
           overflowY: 'auto',
-          padding: 24,
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+          padding: 32,
+          border: '1px solid rgba(0, 242, 254, 0.22)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(0, 242, 254, 0.08)',
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Sliders size={20} color="var(--accent)" />
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', color: '#fff', margin: 0 }}>
-              Live Earnings Simulator
-            </h3>
-            <span
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <div>
+            <div
               style={{
+                fontFamily: 'var(--font-label)',
                 fontSize: '0.68rem',
                 fontWeight: 700,
-                padding: '2px 6px',
-                borderRadius: 4,
-                background: 'rgba(0,229,255,0.1)',
-                color: '#00E5FF',
-                border: '1px solid rgba(0,229,255,0.3)',
+                letterSpacing: '0.25em',
+                textTransform: 'uppercase',
+                color: 'var(--accent)',
+                marginBottom: 6,
               }}
             >
-              MODELLED
-            </span>
+              // CALIBRATION ENGINE
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Sliders size={20} color="var(--accent)" />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+                Income Simulator
+              </h3>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-label)',
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  background: 'rgba(0, 242, 254, 0.1)',
+                  color: 'var(--accent)',
+                  border: '1px solid rgba(0, 242, 254, 0.3)',
+                }}
+              >
+                DETERMINISTIC
+              </span>
+            </div>
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            style={{
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '50%',
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+            }}
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '0 0 18px', lineHeight: 1.5 }}>
-          Simulating <b>{opp.opportunityName}</b> ({opp.platform}). Deterministic arithmetic engine with live vehicle mileage and fuel recalculations.
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', margin: '0 0 20px', lineHeight: 1.5 }}>
+          Simulating <strong style={{ color: '#fff' }}>{opp.opportunityName}</strong> ({opp.platform}). Deterministic arithmetic engine with live vehicle mileage and fuel recalculations.
         </p>
 
         {/* Live Output Banner */}
         <div
           style={{
-            background: 'rgba(0, 255, 136, 0.06)',
-            border: '1px solid rgba(0, 255, 136, 0.3)',
-            borderRadius: 8,
-            padding: '16px 20px',
-            marginBottom: 20,
+            background: 'rgba(6, 24, 34, 0.8)',
+            border: '1px solid rgba(0, 242, 254, 0.25)',
+            borderRadius: 16,
+            padding: '20px 24px',
+            marginBottom: 24,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 14,
+            gap: 16,
           }}
         >
           <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-label)' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-label)', letterSpacing: '0.12em' }}>
               Projected Net Daily
             </span>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--accent)' }}>
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '2.2rem',
+                fontWeight: 800,
+                color: 'var(--accent)',
+                textShadow: '0 0 25px rgba(0, 242, 254, 0.35)',
+                margin: '2px 0',
+              }}
+            >
               {formatINR(sim.netDaily)}
               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 400 }}> / day</span>
             </div>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
               Gross: {formatINR(sim.grossDaily)} | Deductions: {formatINR(sim.platformFee + sim.calculatedTravel + materialCost)}
             </span>
           </div>
 
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.82rem', color: '#fff' }}>
-              Weekly ({daysPerWeek}d): <b>{formatINR(sim.netWeekly)}</b>
+            <div style={{ fontSize: '0.85rem', color: '#fff', marginBottom: 3 }}>
+              Weekly ({daysPerWeek}d): <strong style={{ color: 'var(--accent)' }}>{formatINR(sim.netWeekly)}</strong>
             </div>
-            <div style={{ fontSize: '0.82rem', color: '#fff' }}>
-              Monthly (~{daysPerWeek * 4.33 | 0}d): <b>{formatINR(sim.netMonthly)}</b>
+            <div style={{ fontSize: '0.85rem', color: '#fff', marginBottom: 4 }}>
+              Monthly (~{daysPerWeek * 4.33 | 0}d): <strong style={{ color: 'var(--accent)' }}>{formatINR(sim.netMonthly)}</strong>
             </div>
             {sim.targetGap > 0 ? (
-              <span style={{ fontSize: '0.75rem', color: '#FFAA00' }}>
+              <span style={{ fontSize: '0.76rem', color: '#FFAA00', fontFamily: 'var(--font-label)' }}>
                 Gap to ₹{targetDailyIncome} goal: −{formatINR(sim.targetGap)}
               </span>
             ) : (
-              <span style={{ fontSize: '0.75rem', color: '#00FF88' }}>
+              <span style={{ fontSize: '0.76rem', color: 'var(--accent)', fontFamily: 'var(--font-label)' }}>
                 ✓ Target achieved ({sim.percentage}%)
               </span>
             )}
@@ -189,12 +225,12 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
         </div>
 
         {/* Parameter Sliders */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* Daily Hours */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
               <span style={{ color: 'var(--text-secondary)' }}>Available Daily Hours:</span>
-              <b style={{ color: 'var(--accent)' }}>{hours} hrs / day</b>
+              <b style={{ color: 'var(--accent)', fontFamily: 'var(--font-label)' }}>{hours} hrs / day</b>
             </div>
             <input
               type="range"
@@ -209,9 +245,9 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
 
           {/* Days Per Week */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
               <span style={{ color: 'var(--text-secondary)' }}>Working Days / Week:</span>
-              <b style={{ color: '#fff' }}>{daysPerWeek} days</b>
+              <b style={{ color: '#fff', fontFamily: 'var(--font-label)' }}>{daysPerWeek} days</b>
             </div>
             <input
               type="range"
@@ -226,9 +262,9 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
 
           {/* Unit Payout */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
               <span style={{ color: 'var(--text-secondary)' }}>Payout per {initialFin.unitName.slice(0, -1) || 'unit'}:</span>
-              <b style={{ color: 'var(--accent)' }}>₹{pricePerUnit}</b>
+              <b style={{ color: 'var(--accent)', fontFamily: 'var(--font-label)' }}>₹{pricePerUnit}</b>
             </div>
             <input
               type="range"
@@ -243,9 +279,9 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
 
           {/* Units completed per hour */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
               <span style={{ color: 'var(--text-secondary)' }}>Throughput ({initialFin.unitName}/hour):</span>
-              <b style={{ color: 'var(--accent)' }}>{unitsPerHour}</b>
+              <b style={{ color: 'var(--accent)', fontFamily: 'var(--font-label)' }}>{unitsPerHour}</b>
             </div>
             <input
               type="range"
@@ -260,15 +296,15 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
 
           {/* Dynamic Fuel Calculation (Phase 4) */}
           {opp.requiresVehicle ? (
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ background: 'rgba(6, 18, 26, 0.7)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#FFAA00' }}>
                   Dynamic Fuel Equation: ({distanceKm}km ÷ {mileageKmPerLiter}km/L) × ₹{fuelPricePerLiter}/L = ₹{sim.calculatedTravel}
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, fontSize: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, fontSize: '0.75rem' }}>
                 <div>
-                  <label style={{ color: 'var(--text-muted)' }}>Daily Distance: {distanceKm} km</label>
+                  <label style={{ color: 'var(--text-muted)' }}>Distance: {distanceKm} km</label>
                   <input
                     type="range"
                     min={5}
@@ -292,7 +328,7 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
                   />
                 </div>
                 <div>
-                  <label style={{ color: 'var(--text-muted)' }}>Fuel Price: ₹{fuelPricePerLiter}/L</label>
+                  <label style={{ color: 'var(--text-muted)' }}>Fuel: ₹{fuelPricePerLiter}/L</label>
                   <input
                     type="range"
                     min={90}
@@ -307,9 +343,9 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
             </div>
           ) : (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Daily Commute / Transit:</span>
-                <b style={{ color: '#FFAA00' }}>₹{manualTravelCost} / day</b>
+                <b style={{ color: '#FFAA00', fontFamily: 'var(--font-label)' }}>₹{manualTravelCost} / day</b>
               </div>
               <input
                 type="range"
@@ -325,9 +361,9 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
 
           {/* Platform fee percent */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
               <span style={{ color: 'var(--text-secondary)' }}>Platform Commission:</span>
-              <b style={{ color: '#FF3366' }}>{platformFeePercent}%</b>
+              <b style={{ color: 'var(--danger)', fontFamily: 'var(--font-label)' }}>{platformFeePercent}%</b>
             </div>
             <input
               type="range"
@@ -336,27 +372,23 @@ export function IncomeSimulatorModal({ item, onClose, targetDailyIncome = 600 }:
               step={1}
               value={platformFeePercent}
               onChange={(e) => setPlatformFeePercent(Number(e.target.value))}
-              style={{ width: '100%', accentColor: '#FF3366' }}
+              style={{ width: '100%', accentColor: 'var(--danger)' }}
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div style={{ marginTop: 22, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button
             onClick={onClose}
+            className="btn-cyan-pill"
             style={{
-              padding: '9px 18px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--accent)',
-              border: 'none',
-              color: '#000',
-              fontWeight: 700,
-              cursor: 'pointer',
+              padding: '12px 28px',
               fontSize: '0.82rem',
+              borderRadius: 50,
             }}
           >
-            Apply & Close
+            APPLY & CLOSE
           </button>
         </div>
       </div>

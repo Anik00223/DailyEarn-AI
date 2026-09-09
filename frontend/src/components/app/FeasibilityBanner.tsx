@@ -13,71 +13,71 @@ export function FeasibilityBanner({ feasibility, gapAnalysis }: FeasibilityBanne
 
   const statusConfig = {
     FEASIBLE: {
-      bg: 'rgba(0, 255, 136, 0.08)',
-      border: 'rgba(0, 255, 136, 0.35)',
-      accent: '#00FF88',
-      icon: <CheckCircle2 size={24} color="#00FF88" />,
+      bg: 'rgba(6, 24, 28, 0.75)',
+      border: 'rgba(0, 242, 254, 0.3)',
+      accent: 'var(--accent)',
+      icon: <CheckCircle2 size={24} color="var(--accent)" />,
       badge: 'TARGET FEASIBLE',
-      badgeBg: 'rgba(0, 255, 136, 0.15)',
+      badgeBg: 'rgba(0, 242, 254, 0.12)',
     },
     POSSIBLE_WITH_CHANGES: {
-      bg: 'rgba(255, 170, 0, 0.08)',
-      border: 'rgba(255, 170, 0, 0.4)',
+      bg: 'rgba(28, 20, 8, 0.75)',
+      border: 'rgba(255, 170, 0, 0.35)',
       accent: '#FFAA00',
       icon: <AlertTriangle size={24} color="#FFAA00" />,
-      badge: 'POSSIBLE WITH ADJUSTMENTS',
-      badgeBg: 'rgba(255, 170, 0, 0.15)',
+      badge: 'ADJUSTMENTS REQUIRED',
+      badgeBg: 'rgba(255, 170, 0, 0.12)',
     },
     UNLIKELY: {
-      bg: 'rgba(255, 51, 102, 0.08)',
-      border: 'rgba(255, 51, 102, 0.4)',
-      accent: '#FF3366',
-      icon: <XCircle size={24} color="#FF3366" />,
+      bg: 'rgba(28, 10, 16, 0.75)',
+      border: 'rgba(255, 77, 106, 0.35)',
+      accent: 'var(--danger)',
+      icon: <XCircle size={24} color="var(--danger)" />,
       badge: 'TARGET UNLIKELY TODAY',
-      badgeBg: 'rgba(255, 51, 102, 0.15)',
+      badgeBg: 'rgba(255, 77, 106, 0.12)',
     },
     INSUFFICIENT_DATA: {
-      bg: 'rgba(0, 229, 255, 0.08)',
-      border: 'rgba(0, 229, 255, 0.4)',
-      accent: '#00E5FF',
-      icon: <HelpCircle size={24} color="#00E5FF" />,
-      badge: 'INSUFFICIENT VERIFIED EVIDENCE',
-      badgeBg: 'rgba(0, 229, 255, 0.15)',
+      bg: 'rgba(6, 18, 26, 0.75)',
+      border: 'rgba(0, 242, 254, 0.3)',
+      accent: 'var(--accent)',
+      icon: <HelpCircle size={24} color="var(--accent)" />,
+      badge: 'INSUFFICIENT EVIDENCE',
+      badgeBg: 'rgba(0, 242, 254, 0.12)',
     },
   }[feasibility.status] || {
-    bg: 'rgba(255, 255, 255, 0.04)',
-    border: 'rgba(255, 255, 255, 0.2)',
+    bg: 'rgba(6, 18, 26, 0.75)',
+    border: 'rgba(255, 255, 255, 0.12)',
     accent: '#fff',
     icon: <HelpCircle size={24} color="#fff" />,
     badge: 'ANALYSIS IN PROGRESS',
-    badgeBg: 'rgba(255, 255, 255, 0.1)',
+    badgeBg: 'rgba(255, 255, 255, 0.08)',
   };
 
   return (
     <section
+      className="product-card"
       style={{
         background: statusConfig.bg,
         border: `1px solid ${statusConfig.border}`,
         borderRadius: 'var(--radius-md)',
-        padding: '24px 28px',
-        marginBottom: 32,
-        boxShadow: 'var(--glow-card)',
-        backdropFilter: 'blur(12px)',
+        padding: '26px 30px',
+        marginBottom: 30,
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flex: '1 1 500px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
+        <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flex: '1 1 500px' }}>
           <div style={{ marginTop: 2 }}>{statusConfig.icon}</div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
               <span
                 style={{
                   fontFamily: 'var(--font-label)',
-                  fontSize: '0.75rem',
-                  letterSpacing: '0.08em',
+                  fontSize: '0.72rem',
+                  letterSpacing: '0.12em',
                   fontWeight: 700,
+                  textTransform: 'uppercase',
                   color: statusConfig.accent,
                   background: statusConfig.badgeBg,
                   padding: '4px 10px',
@@ -87,7 +87,16 @@ export function FeasibilityBanner({ feasibility, gapAnalysis }: FeasibilityBanne
               >
                 {statusConfig.badge}
               </span>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', color: '#fff', margin: 0 }}>
+              <h2
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.3rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.01em',
+                  color: '#fff',
+                  margin: 0,
+                }}
+              >
                 {feasibility.headline}
               </h2>
             </div>
@@ -98,25 +107,61 @@ export function FeasibilityBanner({ feasibility, gapAnalysis }: FeasibilityBanne
         </div>
 
         {/* Realistic Ceiling & Target Gap stats */}
-        <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ background: 'rgba(13, 13, 20, 0.65)', border: '1px solid var(--accent-border)', borderRadius: 8, padding: '12px 18px', textAlign: 'right' }}>
-            <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              background: 'rgba(6, 18, 26, 0.7)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 12,
+              padding: '12px 20px',
+              textAlign: 'right',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--font-label)',
+                fontSize: '0.68rem',
+                color: 'var(--text-muted)',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                display: 'block',
+                marginBottom: 2,
+              }}
+            >
               Realistic Ceiling
             </span>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
               {formatINR(feasibility.realisticCeilingMin)} – {formatINR(feasibility.realisticCeilingMax)}
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>/day</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}> /day</span>
             </span>
           </div>
 
           {gapAnalysis.gap > 0 && (
-            <div style={{ background: 'rgba(255, 170, 0, 0.08)', border: '1px solid rgba(255, 170, 0, 0.3)', borderRadius: 8, padding: '12px 18px', textAlign: 'right' }}>
-              <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.7rem', color: '#FFAA00', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>
+            <div
+              style={{
+                background: 'rgba(28, 20, 8, 0.7)',
+                border: '1px solid rgba(255, 170, 0, 0.3)',
+                borderRadius: 12,
+                padding: '12px 20px',
+                textAlign: 'right',
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: 'var(--font-label)',
+                  fontSize: '0.68rem',
+                  color: '#FFAA00',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  display: 'block',
+                  marginBottom: 2,
+                }}
+              >
                 Target Shortfall
               </span>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 700, color: '#FFAA00' }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 800, color: '#FFAA00' }}>
                 −{formatINR(gapAnalysis.gap)}
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>/day</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}> /day</span>
               </span>
             </div>
           )}
@@ -139,24 +184,24 @@ export function FeasibilityBanner({ feasibility, gapAnalysis }: FeasibilityBanne
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 12 }}>
             {gapAnalysis.options.map((opt) => {
               const score = opt.realismScore ?? 75;
-              const badgeColor = score >= 80 ? '#00FF88' : score >= 60 ? '#FFAA00' : '#FF3366';
+              const badgeColor = score >= 80 ? '#00F2FE' : score >= 60 ? '#FFAA00' : '#FF3366';
               return (
                 <div
                   key={opt.id}
                   style={{
-                    background: 'rgba(5, 5, 8, 0.7)',
-                    border: '1px solid var(--accent-border)',
-                    borderRadius: 8,
-                    padding: '12px 14px',
+                    background: 'rgba(6, 18, 26, 0.7)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: 12,
+                    padding: '14px 16px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 8,
+                    gap: 10,
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-label)' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-label)', letterSpacing: '0.08em' }}>
                           Rank #{opt.rank} · {opt.type.replace('_', ' ')}
                         </span>
                         {opt.provenanceLabel && (
@@ -166,23 +211,24 @@ export function FeasibilityBanner({ feasibility, gapAnalysis }: FeasibilityBanne
                               fontWeight: 700,
                               color:
                                 opt.evidenceType === 'DETERMINISTIC'
-                                  ? '#00E5FF'
+                                  ? 'var(--accent)'
                                   : opt.evidenceType === 'USER_INFERENCE'
                                   ? '#818CF8'
                                   : opt.evidenceType === 'MODELLED'
-                                  ? '#00FF88'
+                                  ? '#72F6FF'
                                   : '#FFAA00',
                               background: 'rgba(255,255,255,0.04)',
-                              border: '1px solid rgba(255,255,255,0.1)',
-                              padding: '1px 5px',
-                              borderRadius: 3,
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                              fontFamily: 'var(--font-label)',
                             }}
                           >
                             {opt.provenanceLabel}
                           </span>
                         )}
                       </div>
-                      <h4 style={{ margin: '2px 0 0', fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>
+                      <h4 style={{ margin: '3px 0 0', fontSize: '0.92rem', color: '#fff', fontWeight: 600 }}>
                         {opt.title}
                       </h4>
                     </div>
@@ -193,23 +239,24 @@ export function FeasibilityBanner({ feasibility, gapAnalysis }: FeasibilityBanne
                         color: badgeColor,
                         background: 'rgba(255,255,255,0.04)',
                         padding: '2px 8px',
-                        borderRadius: 4,
+                        borderRadius: 6,
                         border: `1px solid ${badgeColor}40`,
                         whiteSpace: 'nowrap',
+                        fontFamily: 'var(--font-label)',
                       }}
                     >
                       {score}/100 Realism
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                     {opt.explanation || opt.impactDescription}
                   </p>
 
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                    <div>Impact: <strong style={{ color: '#00FF88' }}>+₹{opt.expectedIncomeImpact ?? opt.estimatedExtraDaily}/day</strong></div>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div>Impact: <strong style={{ color: 'var(--accent)' }}>+₹{opt.expectedIncomeImpact ?? opt.estimatedExtraDaily}/day</strong></div>
                     <div>Hours: <strong style={{ color: '#fff' }}>+{opt.requiredAdditionalHours ?? 0}h</strong></div>
-                    <div>Compatibility: <strong style={{ color: '#00E5FF' }}>{opt.scheduleCompatibility ?? 'HIGH'}</strong></div>
+                    <div>Compatibility: <strong style={{ color: '#72F6FF' }}>{opt.scheduleCompatibility ?? 'HIGH'}</strong></div>
                   </div>
                 </div>
               );
@@ -220,8 +267,8 @@ export function FeasibilityBanner({ feasibility, gapAnalysis }: FeasibilityBanne
 
       {/* Required Changes / Actionable Levers */}
       {feasibility.requiredChanges && feasibility.requiredChanges.length > 0 && (
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+        <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
             <TrendingUp size={14} color={statusConfig.accent} />
             {isFeasible ? 'Recommended Execution Focus' : 'Key Operational Adjustments'}
           </span>
@@ -230,13 +277,13 @@ export function FeasibilityBanner({ feasibility, gapAnalysis }: FeasibilityBanne
               <div
                 key={i}
                 style={{
-                  background: 'rgba(5, 5, 8, 0.5)',
-                  border: '1px solid var(--accent-border)',
-                  borderRadius: 6,
-                  padding: '8px 12px',
+                  background: 'rgba(6, 18, 26, 0.65)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: 10,
                   fontSize: '0.85rem',
                   color: 'var(--text-secondary)',
                 }}

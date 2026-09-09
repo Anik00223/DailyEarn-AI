@@ -32,8 +32,8 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
         position: 'fixed',
         inset: 0,
         zIndex: 200,
-        background: 'rgba(0, 0, 0, 0.82)',
-        backdropFilter: 'blur(12px)',
+        background: 'rgba(2, 6, 9, 0.85)',
+        backdropFilter: 'blur(16px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -44,63 +44,69 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
       }}
     >
       <div
+        className="obsidian-card"
         style={{
-          background: 'var(--surface-primary)',
-          border: '1px solid var(--accent-border)',
-          borderRadius: 'var(--radius-lg)',
+          borderRadius: 24,
           width: '100%',
-          maxWidth: 780,
+          maxWidth: 820,
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 24px 60px rgba(0, 0, 0, 0.9)',
+          border: '1px solid rgba(0, 242, 254, 0.22)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(0, 242, 254, 0.08)',
           overflow: 'hidden',
         }}
       >
         {/* HEADER */}
         <div
           style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid var(--border-subtle)',
+            padding: '18px 24px',
+            borderBottom: '1px solid rgba(0, 242, 254, 0.16)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'rgba(0, 255, 136, 0.04)',
+            background: 'rgba(6, 24, 34, 0.7)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span
               style={{
-                background: 'rgba(0, 255, 136, 0.15)',
-                border: '1px solid var(--accent)',
+                background: 'rgba(0, 242, 254, 0.12)',
+                border: '1px solid rgba(0, 242, 254, 0.35)',
                 borderRadius: 6,
-                padding: '4px 8px',
+                padding: '4px 10px',
                 color: 'var(--accent)',
-                fontSize: '0.75rem',
+                fontSize: '0.72rem',
                 fontFamily: 'var(--font-label)',
-                fontWeight: 700,
+                fontWeight: 800,
+                letterSpacing: '0.08em',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 5,
+                gap: 6,
               }}
             >
-              <ShieldCheck size={14} /> JUDGE ATTACK & PROVENANCE INSPECTOR
+              <ShieldCheck size={14} /> JUDGE ATTACK & PROVENANCE
             </span>
-            <span style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.92rem', color: '#fff', fontWeight: 700 }}>
               Rank #{rank}: {opp.opportunityName}
             </span>
           </div>
           <button
             onClick={onClose}
             style={{
-              background: 'none',
-              border: 'none',
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '50%',
+              width: 30,
+              height: 30,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               color: 'var(--text-muted)',
               cursor: 'pointer',
-              padding: 4,
             }}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
@@ -108,8 +114,8 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
         <div
           style={{
             display: 'flex',
-            borderBottom: '1px solid var(--border-subtle)',
-            background: 'var(--surface-secondary)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'rgba(6, 18, 26, 0.8)',
             overflowX: 'auto',
           }}
         >
@@ -124,16 +130,18 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               style={{
-                padding: '10px 16px',
+                padding: '12px 18px',
                 border: 'none',
-                background: activeTab === tab.id ? 'var(--surface-primary)' : 'transparent',
+                background: activeTab === tab.id ? 'rgba(0, 242, 254, 0.08)' : 'transparent',
                 color: activeTab === tab.id ? 'var(--accent)' : 'var(--text-muted)',
                 fontFamily: 'var(--font-label)',
                 fontSize: '0.8rem',
                 fontWeight: 600,
+                letterSpacing: '0.04em',
                 cursor: 'pointer',
                 borderBottom: activeTab === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
                 whiteSpace: 'nowrap',
+                transition: 'all 0.2s',
               }}
             >
               {tab.label}
@@ -166,14 +174,14 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
                 ].map((f, i) => (
                   <div key={i} style={{ background: 'rgba(255,255,255,0.03)', padding: 8, borderRadius: 6, border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{f.label}</div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: f.val >= 80 ? '#00FF88' : '#FFAA00' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: f.val >= 80 ? '#00F2FE' : '#FFAA00' }}>
                       {f.val}/100
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ background: 'rgba(0, 255, 136, 0.05)', padding: 12, borderRadius: 8, border: '1px solid var(--accent-border)' }}>
+              <div style={{ background: 'rgba(0, 242, 254, 0.06)', padding: 12, borderRadius: 8, border: '1px solid var(--accent-border)' }}>
                 <div style={{ color: 'var(--accent)', fontWeight: 600, marginBottom: 4 }}>
                   Why this ranked #{item.rank ?? rank} ({(item.score ?? scoring.totalScore)}/100):
                 </div>
@@ -182,7 +190,7 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
 
               {scoring.positiveDrivers && scoring.positiveDrivers.length > 0 && (
                 <div>
-                  <strong style={{ color: '#00FF88', fontSize: '0.8rem' }}>Positive Scoring Drivers:</strong>
+                  <strong style={{ color: '#00F2FE', fontSize: '0.8rem' }}>Positive Scoring Drivers:</strong>
                   <ul style={{ margin: '6px 0 0', paddingLeft: 18, color: 'var(--text-secondary)' }}>
                     {scoring.positiveDrivers.map((d, idx) => (
                       <li key={idx}>{d}</li>
@@ -215,7 +223,7 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
               </div>
 
               <div style={{ background: 'rgba(5, 5, 8, 0.8)', padding: 14, borderRadius: 8, border: '1px solid var(--accent-border)', fontFamily: 'monospace' }}>
-                <div style={{ color: '#00FF88', fontWeight: 700, fontSize: '0.95rem', marginBottom: 8 }}>
+                <div style={{ color: '#00F2FE', fontWeight: 700, fontSize: '0.95rem', marginBottom: 8 }}>
                   {fin.formulaExplanation}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
@@ -278,13 +286,13 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
                             borderRadius: 4,
                             background:
                               row.field.status === 'VERIFIED'
-                                ? 'rgba(0,255,136,0.15)'
+                                ? 'rgba(0, 242, 254, 0.15)'
                                 : row.field.status === 'DYNAMIC'
-                                ? 'rgba(0,229,255,0.15)'
-                                : 'rgba(255,170,0,0.15)',
+                                ? 'rgba(0, 229, 255, 0.15)'
+                                : 'rgba(255, 170, 0, 0.15)',
                             color:
                               row.field.status === 'VERIFIED'
-                                ? '#00FF88'
+                                ? '#00F2FE'
                                 : row.field.status === 'DYNAMIC'
                                 ? '#00E5FF'
                                 : '#FFAA00',
@@ -379,10 +387,10 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
                   </div>
                   <div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Modeled Net Daily</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 700, color: '#00FF88' }}>{formatINR(simNet)}</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: '#00F2FE' }}>{formatINR(simNet)}</div>
                   </div>
                 </div>
-                <div style={{ marginTop: 10, fontSize: '0.78rem', color: simHours === 4 ? '#00FF88' : '#FFAA00' }}>
+                <div style={{ marginTop: 10, fontSize: '0.78rem', color: simHours === 4 ? '#00F2FE' : '#FFAA00' }}>
                   {simHours === 4
                     ? '✓ Feasible baseline: Modeled volume covers standard ₹600–₹800 daily targets under baseline capacity. The system models mathematical capacity; it does not assess health or fatigue.'
                     : '⚠ Shortfall alert: Halving hours reduces order throughput below the target threshold, triggering user-specific target gap scenarios and dual-stream recommendations.'}
@@ -395,23 +403,23 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
           {activeTab === 'llm_boundary' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircle2 color="#00FF88" size={20} />
+                <CheckCircle2 color="#00F2FE" size={20} />
                 <h4 style={{ margin: 0, color: '#fff' }}>LLM Responsibility Boundary Guarantee</h4>
               </div>
 
-              <div style={{ background: 'rgba(0, 255, 136, 0.04)', padding: 14, borderRadius: 8, border: '1px solid var(--accent-border)' }}>
-                <div style={{ fontWeight: 600, color: 'var(--accent)', marginBottom: 6 }}>
+              <div style={{ background: 'rgba(6, 24, 34, 0.7)', padding: 18, borderRadius: 14, border: '1px solid rgba(0, 242, 254, 0.2)' }}>
+                <div style={{ fontWeight: 700, color: 'var(--accent)', marginBottom: 8, fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   Strict Division of Responsibilities:
                 </div>
                 <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                   <li>
-                    <strong>Deterministic TypeScript Engine:</strong> Exclusively executes financial math, 8-factor scoring, feasibility ceilings, fuel formulas, target gap rankings, and field-level evidence lookups.
+                    <strong style={{ color: '#fff' }}>Deterministic TypeScript Engine:</strong> Exclusively executes financial math, 8-factor scoring, feasibility ceilings, fuel formulas, target gap rankings, and field-level evidence lookups.
                   </li>
                   <li>
-                    <strong>Groq LLaMA 3.3 70B:</strong> Only generates conversational localized advice and language translation based strictly on the pre-calculated, immutable context provided.
+                    <strong style={{ color: '#fff' }}>Groq LLaMA 3.3 70B:</strong> Only generates conversational localized advice and language translation based strictly on the pre-calculated, immutable context provided.
                   </li>
                   <li>
-                    <strong>Anti-Hallucination Guardrails:</strong> The prompt explicitly forbids inventing fake local landmarks or altering numbers. If local verified facts are unavailable, it defaults to <em>"General model inference"</em>.
+                    <strong style={{ color: '#fff' }}>Anti-Hallucination Guardrails:</strong> The prompt explicitly forbids inventing fake local landmarks or altering numbers. If local verified facts are unavailable, it defaults to <em>"General model inference"</em>.
                   </li>
                 </ul>
               </div>
@@ -422,27 +430,23 @@ export function JudgeAttackModal({ item, rank, onClose }: JudgeAttackModalProps)
         {/* FOOTER */}
         <div
           style={{
-            padding: '12px 20px',
-            borderTop: '1px solid var(--border-subtle)',
-            background: 'var(--surface-secondary)',
+            padding: '14px 24px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'rgba(6, 18, 26, 0.8)',
             display: 'flex',
             justifyContent: 'flex-end',
           }}
         >
           <button
             onClick={onClose}
+            className="btn-cyan-pill"
             style={{
-              padding: '6px 16px',
-              borderRadius: 6,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: '#fff',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-label)',
+              padding: '9px 24px',
               fontSize: '0.8rem',
+              borderRadius: 50,
             }}
           >
-            Close Inspector
+            CLOSE INSPECTOR
           </button>
         </div>
       </div>

@@ -95,12 +95,12 @@ export function DashboardPage() {
 
         {/* Empty state while no evaluation has taken place */}
         {!decision && !isEvaluating && (
-          <div style={{ textAlign: 'center', padding: '70px 24px' }}>
-            <Compass size={48} color="var(--accent)" style={{ marginBottom: 16, opacity: 0.7 }} />
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: '#fff', marginBottom: 8 }}>
-              Ready to Evaluate Your Income Path
+          <div className="obsidian-card" style={{ textAlign: 'center', padding: '70px 24px', margin: '20px 0' }}>
+            <Compass size={48} color="var(--accent)" style={{ marginBottom: 16, opacity: 0.8 }} />
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: '#fff', marginBottom: 8, letterSpacing: '0.04em' }}>
+              READY TO EVALUATE YOUR INCOME PATH
             </h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', maxWidth: 500, margin: '0 auto' }}>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', maxWidth: 500, margin: '0 auto', lineHeight: 1.6 }}>
               Select your city, skills, and constraints above to calculate your realistic earning ceiling and verified local recommendations.
             </p>
           </div>
@@ -155,13 +155,20 @@ export function DashboardPage() {
             )}
 
             {/* Recommendation Cards Section */}
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.35rem', color: '#fff', margin: '0 0 6px' }}>
-                Ranked Verified Opportunities for {decision.constraints.city}
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 20px' }}>
-                Scored and calculated deterministically based on your {decision.constraints.availableHoursPerDay} hours/day time budget and {decision.constraints.experienceLevel} experience.
-              </p>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-label)', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
+                    VERIFIED LOCAL OPPORTUNITIES
+                  </span>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: '#fff', margin: 0, letterSpacing: '0.02em' }}>
+                    Ranked Opportunities for {decision.constraints.city}
+                  </h3>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-label)' }}>
+                  TIME BUDGET: <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{decision.constraints.availableHoursPerDay} HRS/DAY</span> · LEVEL: <span style={{ color: '#fff', fontWeight: 600 }}>{decision.constraints.experienceLevel.toUpperCase()}</span>
+                </div>
+              </div>
 
               <div
                 ref={cardsRef}

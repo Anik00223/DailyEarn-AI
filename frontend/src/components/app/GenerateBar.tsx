@@ -142,10 +142,10 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
         position: 'sticky',
         top: 0,
         zIndex: 50,
-        background: 'rgba(5, 5, 8, 0.94)',
-        backdropFilter: 'blur(24px)',
-        borderBottom: '1px solid var(--accent-border)',
+        background: 'var(--bg-card)',
+        borderBottom: '1px solid var(--border)',
         padding: '16px 24px',
+        boxShadow: 'var(--shadow-sm)',
       }}
     >
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -164,20 +164,29 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
                   if (suggestions.length > 0) setShowSuggestions(true);
                 }}
                 placeholder="City (e.g. Silchar, Indore)"
-                style={{ width: '100%', fontSize: '0.9rem', paddingRight: isSearching ? 40 : 16 }}
+                style={{
+                  width: '100%',
+                  fontSize: '0.88rem',
+                  paddingRight: isSearching ? 40 : 16,
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: '#fff',
+                  outline: 'none',
+                }}
               />
               {isSearching && (
                 <Loader2
                   size={16}
                   className="animate-spin"
-                  style={{ position: 'absolute', right: 12, color: 'var(--text-secondary)' }}
+                  style={{ position: 'absolute', right: 12, color: 'var(--accent)' }}
                 />
               )}
             </div>
 
             {showSuggestions && suggestions.length > 0 && (
               <ul
-                className="glass"
+                className="product-card"
                 style={{
                   position: 'absolute',
                   top: 'calc(100% + 6px)',
@@ -187,7 +196,7 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
                   overflowY: 'auto',
                   zIndex: 100,
                   padding: '6px 0',
-                  boxShadow: 'var(--glow-card)',
+                  borderRadius: 'var(--radius-sm)',
                   listStyle: 'none',
                 }}
               >
@@ -209,6 +218,8 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
                       gap: 8,
                       transition: 'background 0.2s',
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0, 180, 216, 0.08)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     <MapPin size={14} style={{ color: 'var(--accent)' }} />
                     <span>{s.display}</span>
@@ -222,12 +233,21 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
             value={state}
             onChange={(e) => setState(e.target.value)}
             placeholder="State"
-            style={{ flex: '1 1 120px', minWidth: 100, fontSize: '0.9rem' }}
+            style={{
+              flex: '1 1 120px',
+              minWidth: 100,
+              fontSize: '0.88rem',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              color: '#fff',
+              outline: 'none',
+            }}
           />
 
           {/* Goal Slider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 190px' }}>
-            <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
               Goal: <b style={{ color: '#fff' }}>₹{dailyGoal}</b>
             </span>
             <input
@@ -243,7 +263,7 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
 
           {/* Available Hours Slider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px' }}>
-            <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            <span style={{ fontFamily: 'var(--font-label)', fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
               Time: <b style={{ color: 'var(--accent)' }}>{availableHours}h/day</b>
             </span>
             <input
@@ -261,10 +281,19 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value as typeof language)}
-            style={{ padding: '10px 12px', fontSize: '0.85rem', minWidth: 95 }}
+            style={{
+              padding: '10px 12px',
+              fontSize: '0.85rem',
+              minWidth: 95,
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              color: '#fff',
+              outline: 'none',
+            }}
           >
             {LANGUAGES.map((l) => (
-              <option key={l.value} value={l.value}>
+              <option key={l.value} value={l.value} style={{ background: '#0B0F14', color: '#fff' }}>
                 {l.label}
               </option>
             ))}
@@ -284,12 +313,14 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
                 onClick={() => setCapital(cap.value)}
                 style={{
                   padding: '4px 10px',
-                  borderRadius: 4,
+                  borderRadius: 'var(--radius-sm)',
                   fontSize: '0.75rem',
-                  border: `1px solid ${capital === cap.value ? 'var(--accent)' : 'var(--accent-border)'}`,
-                  background: capital === cap.value ? 'rgba(0,255,136,0.1)' : 'transparent',
+                  fontFamily: 'var(--font-label)',
+                  border: `1px solid ${capital === cap.value ? 'var(--accent)' : 'var(--border)'}`,
+                  background: capital === cap.value ? 'rgba(0, 180, 216, 0.12)' : 'var(--bg-surface)',
                   color: capital === cap.value ? 'var(--accent)' : 'var(--text-secondary)',
                   cursor: 'pointer',
+                  transition: 'all 0.2s',
                 }}
               >
                 {cap.label}
@@ -306,12 +337,14 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
               onClick={() => setHasVehicle(false)}
               style={{
                 padding: '4px 10px',
-                borderRadius: 4,
+                borderRadius: 'var(--radius-sm)',
                 fontSize: '0.75rem',
-                border: `1px solid ${!hasVehicle ? 'var(--accent)' : 'var(--accent-border)'}`,
-                background: !hasVehicle ? 'rgba(0,255,136,0.1)' : 'transparent',
+                fontFamily: 'var(--font-label)',
+                border: `1px solid ${!hasVehicle ? 'var(--accent)' : 'var(--border)'}`,
+                background: !hasVehicle ? 'rgba(0, 180, 216, 0.12)' : 'var(--bg-surface)',
                 color: !hasVehicle ? 'var(--accent)' : 'var(--text-secondary)',
                 cursor: 'pointer',
+                transition: 'all 0.2s',
               }}
             >
               Walking / Bus
@@ -320,12 +353,14 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
               onClick={() => setHasVehicle(true)}
               style={{
                 padding: '4px 10px',
-                borderRadius: 4,
+                borderRadius: 'var(--radius-sm)',
                 fontSize: '0.75rem',
-                border: `1px solid ${hasVehicle ? 'var(--accent)' : 'var(--accent-border)'}`,
-                background: hasVehicle ? 'rgba(0,255,136,0.1)' : 'transparent',
+                fontFamily: 'var(--font-label)',
+                border: `1px solid ${hasVehicle ? 'var(--accent)' : 'var(--border)'}`,
+                background: hasVehicle ? 'rgba(0, 180, 216, 0.12)' : 'var(--bg-surface)',
                 color: hasVehicle ? 'var(--accent)' : 'var(--text-secondary)',
                 cursor: 'pointer',
+                transition: 'all 0.2s',
               }}
             >
               Two-Wheeler
@@ -341,13 +376,15 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
                 onClick={() => setExperience(lvl)}
                 style={{
                   padding: '4px 8px',
-                  borderRadius: 4,
+                  borderRadius: 'var(--radius-sm)',
                   fontSize: '0.75rem',
+                  fontFamily: 'var(--font-label)',
                   textTransform: 'capitalize',
-                  border: `1px solid ${experience === lvl ? 'var(--accent)' : 'var(--accent-border)'}`,
-                  background: experience === lvl ? 'rgba(0,255,136,0.1)' : 'transparent',
+                  border: `1px solid ${experience === lvl ? 'var(--accent)' : 'var(--border)'}`,
+                  background: experience === lvl ? 'rgba(0, 180, 216, 0.12)' : 'var(--bg-surface)',
                   color: experience === lvl ? 'var(--accent)' : 'var(--text-secondary)',
                   cursor: 'pointer',
+                  transition: 'all 0.2s',
                 }}
               >
                 {lvl}
@@ -368,6 +405,8 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
               display: 'flex',
               alignItems: 'center',
               gap: 4,
+              fontFamily: 'var(--font-label)',
+              fontWeight: 600,
             }}
           >
             <ShieldCheck size={14} /> Trust & Methodology
@@ -384,11 +423,11 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
                 onClick={() => toggleSkill(skill)}
                 style={{
                   padding: '5px 12px',
-                  borderRadius: 50,
-                  fontSize: '0.78rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.76rem',
                   fontFamily: 'var(--font-label)',
-                  border: `1px solid ${active ? 'var(--accent-border-h)' : 'var(--accent-border)'}`,
-                  background: active ? 'var(--accent-glow)' : 'transparent',
+                  border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                  background: active ? 'rgba(0, 180, 216, 0.12)' : 'var(--bg-surface)',
                   color: active ? 'var(--accent)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
@@ -403,30 +442,27 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
           <button
             onClick={handleEvaluate}
             disabled={isEvaluating || !city || selectedSkills.length === 0}
+            className={!isEvaluating && city && selectedSkills.length > 0 ? 'btn-primary' : 'btn-secondary'}
             style={{
               marginLeft: 'auto',
-              padding: '10px 24px',
-              borderRadius: 50,
-              fontSize: '0.85rem',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              background: isEvaluating || !city || selectedSkills.length === 0 ? 'var(--bg-elevated)' : 'var(--accent)',
-              color: isEvaluating || !city || selectedSkills.length === 0 ? 'var(--text-muted)' : '#000',
+              padding: '9px 20px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.84rem',
+              fontWeight: 600,
               cursor: isEvaluating || !city || selectedSkills.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: isEvaluating || !city || selectedSkills.length === 0 ? 0.5 : 1,
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              border: 'none',
-              transition: 'all 0.3s',
             }}
           >
             {isEvaluating ? (
               <>
-                <Loader2 size={16} className="animate-spin" /> Evaluating Constraints...
+                <Loader2 size={15} className="animate-spin" /> Evaluating...
               </>
             ) : (
               <>
-                <Sparkles size={16} /> Evaluate Decision
+                <Sparkles size={15} /> Evaluate Constraints
               </>
             )}
           </button>

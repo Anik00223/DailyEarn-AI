@@ -1,143 +1,219 @@
+import { useState } from 'react';
 import { useScrollReveal } from '../../hooks/useScrollAnimation';
-import { Zap, MapPin, IndianRupee } from 'lucide-react';
+import { Sliders, Cpu, Compass } from 'lucide-react';
 
 const steps = [
   {
     number: '01',
-    icon: MapPin,
-    title: 'Enter Your City',
-    description: 'Tell us where you live — we\'ll find opportunities specific to your local economy.',
+    phase: 'Constraint Input',
+    icon: Sliders,
+    title: 'Declare constraints',
+    description:
+      'Enter your city, verified daily hours, vehicle availability, and current skills. No resume inflation or unrealistic expectations.',
+    tag: 'Stage 01',
   },
   {
     number: '02',
-    icon: Zap,
-    title: 'Share Your Skills',
-    description: 'Select skills you already have — cooking, teaching, driving, coding, or selling.',
+    phase: 'Deterministic Math',
+    icon: Cpu,
+    title: 'Model verified deductions',
+    description:
+      'Our engine tests 50+ local platforms against realistic delivery rates, platform commission cuts, and fuel costs to calculate your true net ceiling.',
+    tag: 'Stage 02',
   },
   {
     number: '03',
-    icon: IndianRupee,
-    title: 'Get Earning Ideas',
-    description: 'AI generates 5 hyper-local ideas with real platforms, INR math, and step-by-step guides.',
+    phase: 'Action Roadmap',
+    icon: Compass,
+    title: 'Execute your plan',
+    description:
+      'Receive an actionable step-by-step onboarding plan with neighborhood tips, platform registration checklists, and safety milestones.',
+    tag: 'Stage 03',
   },
 ];
 
 export function HowItWorksSection() {
-  const ref = useScrollReveal<HTMLElement>();
+  const ref = useScrollReveal<HTMLElement>({ y: 16, stagger: 0.12, duration: 0.6 });
+  const [activeStep, setActiveStep] = useState<number>(0);
 
   return (
     <section
+      id="how-it-works"
       ref={ref}
       style={{
-        padding: '120px 24px',
-        maxWidth: 1100,
+        padding: '110px 24px',
+        maxWidth: 1200,
         margin: '0 auto',
-        textAlign: 'center',
+        position: 'relative',
+        zIndex: 2,
       }}
     >
-      <span
-        data-reveal
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '0.7rem',
-          letterSpacing: '0.25em',
-          color: 'var(--accent)',
-          display: 'block',
-          marginBottom: 16,
-        }}
-      >
-        HOW IT WORKS
-      </span>
-      <h2
-        data-reveal
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(1.8rem, 4vw, 3rem)',
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          marginBottom: 64,
-        }}
-      >
-        Three Steps to Your First ₹500
-      </h2>
+      <div style={{ maxWidth: 720, marginBottom: 54 }}>
+        <span
+          data-reveal
+          style={{
+            fontFamily: 'var(--font-label)',
+            fontSize: '0.74rem',
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+            display: 'block',
+            marginBottom: 10,
+          }}
+        >
+          Methodology & Flow
+        </span>
+        <h2
+          data-reveal
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(1.9rem, 3.4vw, 2.7rem)',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            color: '#FFFFFF',
+            lineHeight: 1.2,
+            marginBottom: 14,
+          }}
+        >
+          How DailyEarn calculates what's actually possible.
+        </h2>
+        <p
+          data-reveal
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.98rem',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.6,
+          }}
+        >
+          Most income calculators quote theoretical maximums under ideal conditions. DailyEarn calculates your realistic net income by modeling real-world friction.
+        </p>
+      </div>
 
+      {/* Horizontal Process Grid */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 32,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: 20,
+          position: 'relative',
         }}
       >
-        {steps.map((step) => (
-          <div
-            key={step.number}
-            data-reveal
-            className="glass"
-            style={{
-              padding: 32,
-              textAlign: 'left',
-              transition: 'transform 0.3s var(--ease-smooth), box-shadow 0.3s var(--ease-smooth)',
-              cursor: 'default',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-6px)';
-              e.currentTarget.style.boxShadow = 'var(--glow-card-h)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '';
-            }}
-          >
-            <span
+        {steps.map((step, index) => {
+          const isActive = activeStep === index;
+          return (
+            <div
+              key={step.number}
+              data-reveal
+              onMouseEnter={() => setActiveStep(index)}
+              className="product-card"
               style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '3rem',
-                fontWeight: 900,
-                color: 'var(--accent)',
-                opacity: 0.2,
-                display: 'block',
-                marginBottom: 8,
+                padding: '32px 28px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                position: 'relative',
+                transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease',
+                transform: isActive ? 'translateY(-2px)' : 'translateY(0)',
+                borderColor: isActive ? 'rgba(0, 242, 254, 0.35)' : 'var(--border-subtle)',
+                boxShadow: isActive ? '0 10px 24px -6px rgba(0, 0, 0, 0.45)' : 'none',
+                cursor: 'pointer',
               }}
             >
-              {step.number}
-            </span>
+              <div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 20,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                        boxShadow: isActive ? '0 0 8px var(--accent)' : 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-label)',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      STEP {step.number}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontFamily: 'var(--font-label)',
+                      color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                      background: isActive ? 'var(--accent-muted)' : 'var(--bg-surface)',
+                      border: `1px solid ${isActive ? 'rgba(0, 242, 254, 0.3)' : 'var(--border)'}`,
+                      padding: '3px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {isActive ? 'Active Stage' : step.tag}
+                  </span>
+                </div>
+
+              <h3
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.18rem',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: '#FFFFFF',
+                  marginBottom: 10,
+                  lineHeight: 1.3,
+                }}
+              >
+                {step.title}
+              </h3>
+
+              <p
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.9rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.6,
+                }}
+              >
+                {step.description}
+              </p>
+            </div>
+
             <div
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                background: 'var(--accent-glow)',
+                marginTop: 24,
+                paddingTop: 16,
+                borderTop: '1px solid var(--border-subtle)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 16,
+                gap: 8,
+                fontSize: '0.78rem',
+                color: 'var(--text-muted)',
+                fontFamily: 'var(--font-label)',
               }}
             >
-              <step.icon size={24} color="var(--accent)" />
+              <step.icon size={15} color="var(--accent)" />
+              <span>{step.phase}</span>
             </div>
-            <h3
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: '1.15rem',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                marginBottom: 8,
-              }}
-            >
-              {step.title}
-            </h3>
-            <p
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.9rem',
-                color: 'var(--text-secondary)',
-                lineHeight: 1.6,
-              }}
-            >
-              {step.description}
-            </p>
           </div>
-        ))}
+        );
+      })}
       </div>
     </section>
   );

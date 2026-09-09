@@ -29,7 +29,7 @@ export function CompetitionHeroDemo({ onLoadDemo }: CompetitionHeroDemoProps) {
   return (
     <div
       style={{
-        background: 'linear-gradient(90deg, rgba(0, 255, 136, 0.08) 0%, rgba(15, 15, 24, 0.95) 100%)',
+        background: 'linear-gradient(90deg, rgba(0, 242, 254, 0.08) 0%, rgba(6, 18, 26, 0.95) 100%)',
         border: '1px solid var(--accent-border-h)',
         borderRadius: 'var(--radius-md)',
         padding: '14px 20px',
@@ -37,13 +37,14 @@ export function CompetitionHeroDemo({ onLoadDemo }: CompetitionHeroDemoProps) {
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
+        backdropFilter: 'blur(12px)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span
             style={{
-              background: 'rgba(0, 255, 136, 0.15)',
+              background: 'rgba(0, 242, 254, 0.12)',
               border: '1px solid var(--accent)',
               borderRadius: 6,
               padding: '4px 8px',
@@ -51,9 +52,10 @@ export function CompetitionHeroDemo({ onLoadDemo }: CompetitionHeroDemoProps) {
               display: 'flex',
               alignItems: 'center',
               gap: 5,
-              fontSize: '0.75rem',
+              fontSize: '0.72rem',
               fontFamily: 'var(--font-label)',
               fontWeight: 700,
+              letterSpacing: '0.08em',
             }}
           >
             <Award size={14} /> JUDGE DEMO MODE

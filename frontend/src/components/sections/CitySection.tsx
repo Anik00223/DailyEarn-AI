@@ -48,29 +48,58 @@ export function CitySection() {
         overflow: 'hidden',
       }}
     >
-      <div style={{ textAlign: 'center', marginBottom: 48, padding: '0 24px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 36, padding: '0 24px' }}>
+        <span
+          data-reveal
+          style={{
+            fontFamily: 'var(--font-label)',
+            fontSize: '0.74rem',
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+            display: 'block',
+            marginBottom: 10,
+          }}
+        >
+          Geographic Calibration
+        </span>
         <h2
           data-reveal
           style={{
             fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(1.6rem, 4vw, 2.5rem)',
+            fontSize: 'clamp(1.8rem, 3.4vw, 2.6rem)',
             fontWeight: 700,
-            color: 'var(--text-primary)',
+            letterSpacing: '-0.02em',
+            color: '#FFFFFF',
+            marginBottom: 12,
           }}
         >
-          Works in{' '}
-          <span style={{ color: 'var(--accent)' }}>500+</span> Indian Cities
+          Tuned for 50+ Tier-2 & Tier-3 economic centers.
         </h2>
+        <p
+          data-reveal
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.95rem',
+            color: 'var(--text-secondary)',
+            maxWidth: 580,
+            margin: '0 auto',
+            lineHeight: 1.5,
+          }}
+        >
+          Gig demand and tutoring rates differ drastically between metro and non-metro cities. DailyEarn calibrates for your specific city’s actual market rates.
+        </p>
       </div>
 
       <div
         ref={scrollRef}
         style={{
           display: 'flex',
-          gap: 16,
+          gap: 10,
           overflow: 'hidden',
           whiteSpace: 'nowrap',
-          padding: '8px 0',
+          padding: '10px 0',
         }}
       >
         {allCities.map((city, i) => (
@@ -78,18 +107,24 @@ export function CitySection() {
             key={`${city}-${i}`}
             style={{
               fontFamily: 'var(--font-label)',
-              fontSize: '0.85rem',
+              fontSize: '0.78rem',
+              fontWeight: 500,
+              letterSpacing: '0.02em',
               color: 'var(--text-secondary)',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--accent-border)',
-              borderRadius: 50,
-              padding: '8px 20px',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '7px 16px',
               whiteSpace: 'nowrap',
               flexShrink: 0,
-              transition: 'border-color 0.3s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              transition: 'border-color 0.2s, color 0.2s',
             }}
           >
-            📍 {city}
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)', opacity: 0.8 }} />
+            {city}
           </span>
         ))}
       </div>

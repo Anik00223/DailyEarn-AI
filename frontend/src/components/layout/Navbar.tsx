@@ -14,27 +14,177 @@ export function Navbar() {
   };
 
   return (
-    <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(5, 5, 8, 0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid var(--accent-border)', padding: '0 24px' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
-        <Link to="/" style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Sparkles size={20} /> DailyEarn AI
+    <nav
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        background: 'rgba(11, 15, 20, 0.95)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--border-subtle)',
+        padding: '0 clamp(16px, 3vw, 32px)',
+        transition: 'all 0.2s ease',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: 64,
+        }}
+      >
+        {/* Brand Wordmark */}
+        <Link
+          to="/"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            textDecoration: 'none',
+          }}
+        >
+          <div
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: '5px',
+              background: 'var(--accent)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div style={{ width: 6, height: 6, borderRadius: '1px', background: '#FFFFFF' }} />
+          </div>
+          <span
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '1rem',
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              color: '#FFFFFF',
+            }}
+          >
+            DailyEarn
+          </span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link to="/analytics" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textDecoration: 'none' }}>
-            Telemetry
+
+        {/* Minimal Natural Navigation Links */}
+        <div className="nav-desktop-links">
+          <a
+            href="#product"
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: '0.88rem',
+              fontWeight: 500,
+              color: 'var(--text-secondary)',
+              transition: 'color 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          >
+            Product
+          </a>
+          <a
+            href="#how-it-works"
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: '0.88rem',
+              fontWeight: 500,
+              color: 'var(--text-secondary)',
+              transition: 'color 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          >
+            How it works
+          </a>
+          <Link
+            to="/analytics"
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: '0.88rem',
+              fontWeight: 500,
+              color: 'var(--text-secondary)',
+              transition: 'color 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          >
+            Trust
           </Link>
+        </div>
+
+        {/* Right CTA / Session Area */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           {isAuthenticated ? (
             <>
-              <Link to="/dashboard" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textDecoration: 'none' }}>Dashboard</Link>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}><User size={14} />{user?.name || user?.email}</span>
-              <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'pointer', background: 'none', border: 'none', padding: '6px 12px' }}>
-                <LogOut size={14} /> Logout
+              <Link
+                to="/dashboard"
+                className="btn-secondary"
+                style={{
+                  padding: '7px 14px',
+                  fontSize: '0.82rem',
+                }}
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={handleLogout}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: '0.78rem',
+                  letterSpacing: '0.12em',
+                  fontFamily: 'var(--font-label)',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  background: 'none',
+                  border: 'none',
+                  padding: '6px 12px',
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+              >
+                <LogOut size={13} /> Exit
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textDecoration: 'none' }}>Login</Link>
-              <Link to="/register" style={{ fontSize: '0.85rem', fontFamily: 'var(--font-display)', background: 'var(--accent)', color: '#000', padding: '8px 20px', borderRadius: 50, fontWeight: 700, textDecoration: 'none' }}>Get Started</Link>
+              <Link
+                to="/login"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.88rem',
+                  fontWeight: 500,
+                  color: 'var(--text-secondary)',
+                  transition: 'color 0.2s',
+                  padding: '8px 12px',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/register"
+                className="btn-primary"
+                style={{
+                  padding: '8px 18px',
+                  fontSize: '0.84rem',
+                }}
+              >
+                Get Started
+              </Link>
             </>
           )}
         </div>

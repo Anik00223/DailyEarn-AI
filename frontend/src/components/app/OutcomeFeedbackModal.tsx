@@ -60,8 +60,8 @@ export function OutcomeFeedbackModal({ item, onClose }: OutcomeFeedbackModalProp
         position: 'fixed',
         inset: 0,
         zIndex: 160,
-        background: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(10px)',
+        background: 'rgba(2, 6, 9, 0.85)',
+        backdropFilter: 'blur(16px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -72,41 +72,70 @@ export function OutcomeFeedbackModal({ item, onClose }: OutcomeFeedbackModalProp
       }}
     >
       <div
+        className="obsidian-card"
         style={{
-          background: 'rgba(15, 15, 24, 0.96)',
-          border: '1px solid var(--accent-border-h)',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--glow-card)',
+          borderRadius: 24,
+          border: '1px solid rgba(0, 242, 254, 0.22)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(0, 242, 254, 0.08)',
           width: '100%',
           maxWidth: 540,
-          padding: 28,
+          padding: 32,
           position: 'relative',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <CheckSquare size={20} color="var(--accent)" />
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: '#fff', margin: 0 }}>
-              Report Real-World Outcome
-            </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div>
+            <div
+              style={{
+                fontFamily: 'var(--font-label)',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                letterSpacing: '0.25em',
+                textTransform: 'uppercase',
+                color: 'var(--accent)',
+                marginBottom: 6,
+              }}
+            >
+              // GROUND TRUTH REPORTING
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <CheckSquare size={20} color="var(--accent)" />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+                Report Real Outcome
+              </h3>
+            </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-            <X size={20} />
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '50%',
+              width: 30,
+              height: 30,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+            }}
+          >
+            <X size={16} />
           </button>
         </div>
 
         {submitted ? (
           <div style={{ textAlign: 'center', padding: '36px 16px' }}>
-            <CheckCircle2 size={48} color="#00FF88" style={{ marginBottom: 12 }} />
-            <h4 style={{ color: '#fff', fontSize: '1.1rem', margin: '0 0 8px' }}>Outcome Feedback Recorded!</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+            <CheckCircle2 size={48} color="var(--accent)" style={{ marginBottom: 12 }} />
+            <h4 style={{ color: '#fff', fontSize: '1.2rem', margin: '0 0 8px', fontFamily: 'var(--font-display)', fontWeight: 800 }}>Outcome Recorded!</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5 }}>
               Your real-world numbers help improve ground-truth predictions across Bharat without inflating expectations.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
-              Opportunity: <b style={{ color: '#fff' }}>{opp.opportunityName}</b>. Predicted: <b style={{ color: 'var(--accent)' }}>₹{fin.netDaily}/day</b>.
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', margin: 0 }}>
+              Opportunity: <strong style={{ color: '#fff' }}>{opp.opportunityName}</strong>. Predicted: <strong style={{ color: 'var(--accent)' }}>₹{fin.netDaily}/day</strong>.
             </p>
 
             {/* Actual Earned */}
@@ -167,7 +196,7 @@ export function OutcomeFeedbackModal({ item, onClose }: OutcomeFeedbackModalProp
                     padding: '8px',
                     borderRadius: 6,
                     border: `1px solid ${wasEstimateAccurate ? 'var(--accent)' : 'var(--accent-border)'}`,
-                    background: wasEstimateAccurate ? 'rgba(0,255,136,0.1)' : 'transparent',
+                    background: wasEstimateAccurate ? 'rgba(0, 242, 254, 0.12)' : 'transparent',
                     color: wasEstimateAccurate ? 'var(--accent)' : 'var(--text-secondary)',
                     cursor: 'pointer',
                     fontSize: '0.8rem',
@@ -196,7 +225,7 @@ export function OutcomeFeedbackModal({ item, onClose }: OutcomeFeedbackModalProp
 
             {/* Notes */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--font-label)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6 }}>
                 Notes / Ground Reality Observations:
               </label>
               <textarea
@@ -204,24 +233,35 @@ export function OutcomeFeedbackModal({ item, onClose }: OutcomeFeedbackModalProp
                 onChange={(e) => setFeedbackNotes(e.target.value)}
                 placeholder="e.g., Rain delayed deliveries by 45 mins; tutoring student parents preferred evening slot"
                 rows={3}
-                style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
+                style={{
+                  width: '100%',
+                  background: 'rgba(6, 18, 26, 0.7)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                }}
               />
             </div>
 
-            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button
                 type="button"
                 onClick={onClose}
-                style={{ padding: '9px 16px', background: 'transparent', border: '1px solid var(--accent-border)', color: '#fff', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.85rem' }}
+                className="btn-ghost-pill"
+                style={{ padding: '10px 22px', fontSize: '0.82rem', borderRadius: 50 }}
               >
-                Cancel
+                CANCEL
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                style={{ padding: '9px 20px', background: 'var(--accent)', border: 'none', color: '#000', fontWeight: 700, borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}
+                className="btn-cyan-pill"
+                style={{ padding: '10px 24px', fontSize: '0.82rem', borderRadius: 50 }}
               >
-                <Send size={14} /> Submit Feedback
+                <Send size={14} /> SUBMIT FEEDBACK
               </button>
             </div>
           </form>

@@ -5,7 +5,7 @@ import type { Idea } from '../../types/api.types';
 import { formatINR } from '../../utils/formatCurrency';
 
 const effortStyles = {
-  low: { bg: 'rgba(0,255,136,0.1)', color: '#00FF88', label: 'Low Effort' },
+  low: { bg: 'rgba(0, 242, 254, 0.12)', color: '#00F2FE', label: 'Low Effort' },
   medium: { bg: 'rgba(255,170,0,0.1)', color: '#ffaa00', label: 'Medium Effort' },
   high: { bg: 'rgba(255,51,102,0.1)', color: '#ff3366', label: 'High Effort' },
 };
