@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { gsap } from 'gsap';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Check, MapPin, Clock, IndianRupee, Compass, ChevronRight, Shield, Zap } from 'lucide-react';
+import { IncomeIntelligenceFlow } from './IncomeIntelligenceFlow';
 
 const CITIES = ['Silchar', 'Patna', 'Kota', 'Pune', 'Guntur', 'Jorhat', 'Ranchi', 'Nagpur'];
 
@@ -188,7 +189,10 @@ export function HeroSection() {
             }}
           >
             Turn the time you have <br />
-            <span style={{ color: 'var(--accent)' }}>into income that makes sense.</span>
+            <span className="hero-highlight" style={{ color: 'var(--accent)', position: 'relative', display: 'inline-block' }}>
+              into income that makes sense.
+              <span className="hero-underline-marker" aria-hidden="true" />
+            </span>
           </h1>
 
           <p
@@ -413,6 +417,15 @@ export function HeroSection() {
                 ))}
               </div>
             </div>
+
+            {/* Signature Hero Animation: Income Intelligence Data Path */}
+            <IncomeIntelligenceFlow
+              city={selectedCity}
+              skill={selectedSkill}
+              hours={selectedHours}
+              target={targetIncome}
+              calculation={calculation}
+            />
 
             {/* Result Box (Tactile Product Result) */}
             <div

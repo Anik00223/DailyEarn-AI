@@ -27,13 +27,13 @@ export function useScrollReveal<T extends HTMLElement>(options?: ScrollRevealOpt
     const ctx = gsap.context(() => {
       gsap.fromTo(
         elements,
-        { y: options?.y ?? 30, opacity: 0 },
+        { y: options?.y ?? 18, opacity: options?.opacity ?? 0 },
         {
           y: 0,
           opacity: 1,
-          duration: options?.duration ?? 0.8,
-          stagger: options?.stagger ?? 0.1,
-          ease: 'power3.out',
+          duration: options?.duration ?? 0.65,
+          stagger: options?.stagger ?? 0.08,
+          ease: 'power2.out',
           scrollTrigger: {
             trigger: ref.current,
             start: 'top 85%',

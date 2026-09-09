@@ -144,11 +144,11 @@ export function IdeaPreviewSection() {
             <div
               key={item.id}
               data-reveal
-              className="product-card"
+              className="product-card opportunity-benchmark-card"
               style={{
                 padding: '28px 32px',
                 transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease',
-                transform: isExpanded ? 'translateY(-3px)' : 'translateY(0)',
+                transform: isExpanded ? 'translateY(-3px)' : undefined,
                 boxShadow: isExpanded ? '0 12px 28px -6px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 242, 254, 0.25)' : undefined,
                 borderColor: isExpanded ? 'rgba(0, 242, 254, 0.35)' : undefined,
               }}
@@ -225,6 +225,7 @@ export function IdeaPreviewSection() {
                       Modeled Net
                     </div>
                     <div
+                      className="opportunity-net-val"
                       style={{
                         fontFamily: 'var(--font-display)',
                         fontSize: '1.6rem',
@@ -265,6 +266,7 @@ export function IdeaPreviewSection() {
                         {item.fitScore}
                       </span>
                       <span
+                        className="opportunity-fit-badge"
                         style={{
                           fontSize: '0.72rem',
                           color: 'var(--text-secondary)',
@@ -282,7 +284,7 @@ export function IdeaPreviewSection() {
                   {/* Toggle Button */}
                   <button
                     onClick={() => toggleExpand(item.id)}
-                    className="btn-secondary"
+                    className="btn-secondary opportunity-inspect-btn"
                     style={{
                       padding: '8px 14px',
                       fontSize: '0.78rem',
@@ -292,7 +294,7 @@ export function IdeaPreviewSection() {
                     }}
                   >
                     {isExpanded ? 'Hide Model' : 'Inspect Model'}
-                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {isExpanded ? <ChevronUp size={14} className="inspect-arrow" /> : <ChevronDown size={14} className="inspect-arrow" />}
                   </button>
                 </div>
               </div>

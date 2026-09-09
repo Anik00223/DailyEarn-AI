@@ -12,8 +12,26 @@ export function CTASection() {
       style={{
         padding: '110px 24px 130px',
         position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Subtle, slow ambient light drift behind the CTA */}
+      <div
+        className="cta-ambient-drift"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          width: '700px',
+          height: '340px',
+          background: 'radial-gradient(ellipse at center, rgba(0, 180, 216, 0.12) 0%, rgba(11, 15, 20, 0) 70%)',
+          filter: 'blur(80px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
       <div
         data-reveal
         className="product-card"
@@ -24,6 +42,8 @@ export function CTASection() {
           textAlign: 'center',
           background: 'var(--bg-card)',
           border: '1px solid var(--border)',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         <span
