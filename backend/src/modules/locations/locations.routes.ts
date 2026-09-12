@@ -14,15 +14,25 @@ const searchSchema = z.object({
 router.get(
   '/search',
   locationLimiter,
-  validateQuery(searchSchema),
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
-      const q = req.query.q as string;
+      const rawQ = req.query.q;
+      const q = typeof rawQ === 'string' ? rawQ.trim() : '';
+      if (q.length < 2) {
+        res.status(400).json({
+          success: false,
+          code: 'VALIDATION_ERROR',
+          message: 'Query must be at least 2 characters',
+          errors: [{ field: 'q', message: 'Query must be at least 2 characters' }],
+        });
+        return;
+      }
       const suggestions = await searchLocations(q);
       res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
       res.json(success(suggestions));
     } catch (error) {
-      next(error);
+      console.error('[Locations] Unexpected search route error:', error);
+      res.json(success([]));
     }
   }
 );

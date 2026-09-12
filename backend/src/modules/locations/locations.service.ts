@@ -21,6 +21,8 @@ interface OSMResponseItem {
   address?: OSMAddress;
 }
 
+
+
 export async function searchLocations(query: string): Promise<LocationSuggestion[]> {
   const normalizedQuery = query.trim().toLowerCase();
   if (normalizedQuery.length < 2) {
