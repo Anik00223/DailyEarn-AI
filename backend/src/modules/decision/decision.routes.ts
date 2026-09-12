@@ -11,6 +11,7 @@ import {
 import * as decisionService from './decision.service';
 import { VERIFIED_OPPORTUNITIES_SEED } from '../../db/seeds/verifiedOpportunities';
 import { success } from '../../utils/apiResponse';
+import { orchestrateAiRequest } from '../../services/aiOrchestrator';
 import jwt from 'jsonwebtoken';
 import { env } from '../../config/env';
 
@@ -45,6 +46,45 @@ router.post(
       res.json(success(result, 'Decision evaluated successfully'));
     } catch (error) {
       next(error);
+    }
+  }
+);
+
+// POST /api/decision/test-ai (Safe test path for live AI provider diagnostics)
+router.post(
+  '/test-ai',
+  decisionLimiter,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { forceGroqFailure, forceNvidiaFailure, skipCache, prompt } = req.body || {};
+      const testPrompt =
+        prompt ||
+        `Provide a concise 1-sentence qualitative rationale for a food delivery opportunity in Silchar, Assam in valid JSON format: {"why_recommended": "Strong college area demand in Tarapur."}`;
+
+      const result = await orchestrateAiRequest(testPrompt, undefined, {
+        forceGroqFailure: Boolean(forceGroqFailure),
+        forceNvidiaFailure: Boolean(forceNvidiaFailure),
+        skipCache: Boolean(skipCache),
+      });
+
+      res.json(
+        success({
+          provider: result.provider,
+          reason: result.reason,
+          latencyMs: result.latencyMs,
+          model: result.model,
+          fromCache: result.fromCache,
+          hasContent: Boolean(result.content),
+          contentPreview: result.content ? result.content.substring(0, 150) : '',
+        })
+      );
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown AI error';
+      res.status(200).json({
+        success: false,
+        error: msg,
+        fallback: 'deterministic',
+      });
     }
   }
 );

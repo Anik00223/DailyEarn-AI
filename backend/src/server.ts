@@ -262,6 +262,7 @@ app.get(['/api/health', '/health'], async (_req: Request, res: Response) => {
   const isHealthy = dbOk; // Database is the authoritative critical service
   res.status(isHealthy ? 200 : 503).json({
     status: isHealthy ? (redisOk ? 'ok' : 'degraded') : 'unhealthy',
+    commit: process.env.RENDER_GIT_COMMIT || '7b6a046',
     database: dbOk ? 'ok' : 'error',
     redis: redisOk ? 'ok' : 'degraded',
     pool: poolStats,
@@ -282,6 +283,7 @@ app.get(['/api/health', '/health'], async (_req: Request, res: Response) => {
 app.get('/api/monitor', (_req: Request, res: Response) => {
   res.json({
     ...monitor(),
+    commit: process.env.RENDER_GIT_COMMIT || '7b6a046',
     pool: getPoolStats(),
     groq: getGroqMetrics(),
     nvidia: getNvidiaMetrics(),

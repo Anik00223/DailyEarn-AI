@@ -14,6 +14,8 @@ export const evaluateDecisionSchema = z.object({
   experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']).default('beginner'),
   skills: z.array(z.string().min(1).max(50)).min(1, 'Select at least one skill').max(10),
   language: z.enum(['en', 'hi', 'bn', 'te', 'ta', 'mr']).default('en'),
+  testSimulateGroqFailure: z.boolean().optional(),
+  testSimulateNvidiaFailure: z.boolean().optional(),
 });
 
 export const simulatorRecalculateSchema = z.object({

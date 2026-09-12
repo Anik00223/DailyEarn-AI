@@ -178,7 +178,10 @@ export async function evaluateDecision(
 
   try {
     const prompt = buildDecisionEnrichmentPrompt(constraints, topOpps, feasibility);
-    const orchestration = await orchestrateAiRequest(prompt);
+    const orchestration = await orchestrateAiRequest(prompt, undefined, {
+      forceGroqFailure: (constraints as any).testSimulateGroqFailure,
+      forceNvidiaFailure: (constraints as any).testSimulateNvidiaFailure,
+    });
 
     if (orchestration.content) {
       let cleaned = orchestration.content.trim();
