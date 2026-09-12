@@ -36,21 +36,27 @@ export async function searchLocations(query: string): Promise<LocationSuggestion
       return JSON.parse(cached) as LocationSuggestion[];
     }
   } catch (error) {
-    console.error('[Locations] Cache read failed:', error);
+    console.error('[Locations] Cache read error:', error);
   }
 
-  // 2. Fetch from OpenStreetMap Nominatim
+  // 2. Fetch from OpenStreetMap Nominatim with bounded 3.5s timeout
   const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
     query
   )}&format=json&addressdetails=1&limit=8&countrycodes=in`;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'DailyEarn-AI/1.0 (contact@dailyearn.ai)',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`OSM Nominatim API HTTP error status: ${response.status}`);
@@ -64,20 +70,15 @@ export async function searchLocations(query: string): Promise<LocationSuggestion
       const addr = item.address;
       if (!addr) continue;
 
-      // Extract best candidate for "city"
       const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
       const state = addr.state || '';
 
       if (!city || !state) continue;
 
-      // Deduplicate suggestions based on city + state combination
       const dedupKey = `${city.toLowerCase()}:${state.toLowerCase()}`;
       if (seen.has(dedupKey)) continue;
       seen.add(dedupKey);
 
-      // Clean display name by shortening it
-      // Standard OSM display name can be extremely long: "Silchar, Cachar, Assam, 788001, India"
-      // We want to format it nicely: "Silchar, Assam" or "Silchar, Cachar, Assam"
       const parts = [city];
       if (addr.county && addr.county.toLowerCase() !== city.toLowerCase()) {
         parts.push(addr.county);
@@ -92,7 +93,6 @@ export async function searchLocations(query: string): Promise<LocationSuggestion
       });
     }
 
-    // 3. Cache the results in Redis (24 hours TTL)
     if (suggestions.length > 0) {
       try {
         await redisSet(cacheKey, JSON.stringify(suggestions), 24 * 60 * 60);
@@ -103,7 +103,7 @@ export async function searchLocations(query: string): Promise<LocationSuggestion
 
     return suggestions;
   } catch (error) {
-    console.error(`[Locations] OSM search failed for "${query}":`, error);
+    console.warn(`[Locations] OSM search failed for "${query}":`, error instanceof Error ? error.message : error);
     return [];
   }
 }

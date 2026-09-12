@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { db } from '../../db/index';
 import { recommendations, userOutcomes, executionPlans, analytics } from '../../db/schema/index';
 import { VERIFIED_OPPORTUNITIES_SEED, type SeedOpportunity } from '../../db/seeds/verifiedOpportunities';
@@ -11,6 +12,7 @@ import { generate7DayExecutionPlan } from '../../engines/executionPlanEngine';
 import { buildDecisionEnrichmentPrompt } from './decision.prompt';
 import { generateContent, classifyError } from '../../config/groq';
 import { env, isGroqConfigured } from '../../config/env';
+import { redisGet, redisSet } from '../../config/redis';
 import type { UserConstraints, EvaluatedOpportunity, FeasibilityVerdict, IncomeMixBundle } from '../../engines/types';
 import { aiEnrichmentResponseSchema, type EvaluateDecisionInput, type SimulatorRecalculateInput, type RecordOutcomeInput, type SavePlanInput } from './decision.schema';
 import { desc, eq, count, sql } from 'drizzle-orm';
@@ -18,6 +20,7 @@ import { desc, eq, count, sql } from 'drizzle-orm';
 export interface AiEnrichmentStatus {
   status:
     | 'applied'
+    | 'cached'
     | 'fallback_unconfigured'
     | 'fallback_auth_error'
     | 'fallback_rate_limit'
@@ -172,7 +175,26 @@ export async function evaluateDecision(
   } else {
     try {
       const prompt = buildDecisionEnrichmentPrompt(constraints, topOpps, feasibility);
-      const rawAi = await generateContent(prompt);
+      const promptHash = crypto.createHash('sha256').update(prompt.trim()).digest('hex');
+      const cacheKey = `ai:decision:${promptHash}`;
+
+      // 7a. Check Redis cache first (1 hour TTL)
+      let cachedAi: string | null = null;
+      try {
+        cachedAi = await redisGet(cacheKey);
+      } catch {
+        // Non-critical cache read error
+      }
+
+      let rawAi: string;
+      let fromCache = false;
+
+      if (cachedAi) {
+        rawAi = cachedAi;
+        fromCache = true;
+      } else {
+        rawAi = await generateContent(prompt);
+      }
 
       let cleaned = rawAi.trim();
       if (cleaned.startsWith('```')) {
@@ -195,9 +217,20 @@ export async function evaluateDecision(
           }
         }
 
+        // Cache valid result in Redis for 1 hour if newly fetched
+        if (!fromCache) {
+          try {
+            await redisSet(cacheKey, rawAi, 3600);
+          } catch {
+            // Ignore cache write error
+          }
+        }
+
         aiStatus = {
-          status: 'applied',
-          message: 'AI qualitative rationale and localized tips generated successfully.',
+          status: fromCache ? 'cached' : 'applied',
+          message: fromCache
+            ? 'Cached AI qualitative rationale and localized tips applied.'
+            : 'AI qualitative rationale and localized tips generated successfully.',
           model: env.GROQ_MODEL,
         };
       } else {
@@ -226,6 +259,9 @@ export async function evaluateDecision(
       } else if (classified.type === 'timeout') {
         statusKind = 'fallback_timeout';
         safeMsg = 'Network/service timeout while contacting AI service. Deterministic engine active.';
+      } else if (classified.type === 'circuit_breaker_open') {
+        statusKind = 'fallback_error';
+        safeMsg = 'AI service circuit breaker open (failing fast). Deterministic engine active.';
       } else if (classified.type === 'unconfigured') {
         statusKind = 'fallback_unconfigured';
         safeMsg = 'AI service configuration problem. Deterministic engine active.';
@@ -236,7 +272,7 @@ export async function evaluateDecision(
         message: safeMsg,
         model: env.GROQ_MODEL,
       };
-      console.warn('[Decision AI] Local enrichment failed (falling back to deterministic tips):', classified.message);
+      console.warn('[Decision AI] Qualitative enrichment failed (falling back to deterministic tips):', classified.message);
       whyRecommended = defaultQualitativeRationale;
     }
   }

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { env, isGroqConfigured } from './env';
 
 export type GroqErrorType =
@@ -9,6 +10,7 @@ export type GroqErrorType =
   | 'validation_failed'
   | 'bad_request'
   | 'network_error'
+  | 'circuit_breaker_open'
   | 'unknown';
 
 export interface GroqError {
@@ -17,7 +19,53 @@ export interface GroqError {
   retryable: boolean;
 }
 
-function maskSecretInText(text: string): string {
+export type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+
+interface CircuitBreakerState {
+  state: CircuitState;
+  failureCount: number;
+  lastFailureTime: number;
+  consecutiveSuccesses: number;
+}
+
+// ─── CIRCUIT BREAKER STATE ───
+const circuitBreaker: CircuitBreakerState = {
+  state: 'CLOSED',
+  failureCount: 0,
+  lastFailureTime: 0,
+  consecutiveSuccesses: 0,
+};
+
+// ─── METRICS TELEMETRY ───
+const metrics = {
+  totalRequests: 0,
+  successfulRequests: 0,
+  failedRequests: 0,
+  coalescedRequests: 0,
+  circuitTripCount: 0,
+  lastLatencyMs: 0,
+};
+
+// ─── IN-FLIGHT REQUEST COALESCING MAP ───
+const inFlightRequests = new Map<string, Promise<string>>();
+
+export function getGroqMetrics() {
+  return {
+    ...metrics,
+    circuitState: circuitBreaker.state,
+    failureCount: circuitBreaker.failureCount,
+    inFlightCount: inFlightRequests.size,
+  };
+}
+
+export function resetCircuitBreaker(): void {
+  circuitBreaker.state = 'CLOSED';
+  circuitBreaker.failureCount = 0;
+  circuitBreaker.lastFailureTime = 0;
+  circuitBreaker.consecutiveSuccesses = 0;
+}
+
+export function maskSecretInText(text: string): string {
   if (!text) return '';
   return text.replace(/gsk_[a-zA-Z0-9_-]{10,}/g, 'gsk_***');
 }
@@ -28,6 +76,13 @@ export function classifyError(error: unknown, status?: number, errorDetail?: str
   const lowerMessage = message.toLowerCase();
   const lowerDetail = (errorDetail || '').toLowerCase();
 
+  if (lowerMessage.includes('circuit breaker is open')) {
+    return {
+      type: 'circuit_breaker_open',
+      message: 'Groq AI circuit breaker is active (temporarily failing fast due to provider errors)',
+      retryable: false,
+    };
+  }
   if (lowerMessage.includes('unconfigured') || lowerMessage.includes('placeholder')) {
     return {
       type: 'unconfigured',
@@ -93,18 +148,72 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function generateContent(
+function checkCircuitState(): void {
+  const now = Date.now();
+  if (circuitBreaker.state === 'OPEN') {
+    if (now - circuitBreaker.lastFailureTime > env.CIRCUIT_BREAKER_RESET_TIMEOUT_MS) {
+      circuitBreaker.state = 'HALF_OPEN';
+      console.warn('[CircuitBreaker:Groq] Transitioned from OPEN to HALF_OPEN (probing provider recovery)');
+    } else {
+      throw new Error('Circuit breaker is open: Groq provider is temporarily suspended due to repeated failures');
+    }
+  }
+}
+
+function recordCircuitSuccess(): void {
+  metrics.successfulRequests++;
+  if (circuitBreaker.state === 'HALF_OPEN') {
+    circuitBreaker.consecutiveSuccesses++;
+    if (circuitBreaker.consecutiveSuccesses >= 2) {
+      circuitBreaker.state = 'CLOSED';
+      circuitBreaker.failureCount = 0;
+      circuitBreaker.consecutiveSuccesses = 0;
+      console.log('✅ [CircuitBreaker:Groq] Provider verified healthy — circuit closed');
+    }
+  } else if (circuitBreaker.state === 'CLOSED') {
+    circuitBreaker.failureCount = 0;
+  }
+}
+
+function recordCircuitFailure(): void {
+  metrics.failedRequests++;
+  circuitBreaker.failureCount++;
+  circuitBreaker.lastFailureTime = Date.now();
+  circuitBreaker.consecutiveSuccesses = 0;
+
+  if (
+    circuitBreaker.state === 'CLOSED' &&
+    circuitBreaker.failureCount >= env.CIRCUIT_BREAKER_FAIL_THRESHOLD
+  ) {
+    circuitBreaker.state = 'OPEN';
+    metrics.circuitTripCount++;
+    console.warn(
+      `🚨 [CircuitBreaker:Groq] Circuit TRIPPED to OPEN after ${circuitBreaker.failureCount} consecutive failures. Failing fast for ${env.CIRCUIT_BREAKER_RESET_TIMEOUT_MS}ms.`
+    );
+  } else if (circuitBreaker.state === 'HALF_OPEN') {
+    circuitBreaker.state = 'OPEN';
+    console.warn('🚨 [CircuitBreaker:Groq] Probe failed in HALF_OPEN — circuit reopened');
+  }
+}
+
+/**
+ * Executes raw network request to Groq API with bounded timeout and retry protection.
+ */
+async function executeGroqRequest(
   prompt: string,
   validator?: (text: string) => boolean
 ): Promise<string> {
-  // Short-circuit immediately if Groq credentials are not configured or placeholder
+  metrics.totalRequests++;
+  checkCircuitState();
+
   if (!isGroqConfigured()) {
     throw new Error('Groq API error (unconfigured): GROQ_API_KEY is not configured or contains placeholder text');
   }
 
-  const maxAttempts = 3;
-  const baseDelay = 1500; // 1.5s -> 3s -> 6s exponential backoff
-  const timeoutMs = 30000;
+  const maxAttempts = 2; // Bounded retries: max 2 attempts only
+  const baseDelay = 1000;
+  const timeoutMs = env.GROQ_TIMEOUT_MS; // Bounded 8s default timeout
+  const startTime = Date.now();
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -119,16 +228,9 @@ export async function generateContent(
         },
         body: JSON.stringify({
           model: env.GROQ_MODEL,
-          messages: [
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
+          messages: [{ role: 'user', content: prompt }],
           temperature: 0.85,
-          response_format: {
-            type: 'json_object',
-          },
+          response_format: { type: 'json_object' },
         }),
         signal: controller.signal,
       });
@@ -150,11 +252,7 @@ export async function generateContent(
       }
 
       const responseData = (await response.json()) as {
-        choices?: Array<{
-          message?: {
-            content?: string;
-          };
-        }>;
+        choices?: Array<{ message?: { content?: string } }>;
       };
 
       const text = responseData.choices?.[0]?.message?.content;
@@ -167,6 +265,8 @@ export async function generateContent(
         throw new Error('Response validation failed (invalid JSON structure or fields)');
       }
 
+      metrics.lastLatencyMs = Date.now() - startTime;
+      recordCircuitSuccess();
       return text;
     } catch (error) {
       let status: number | undefined;
@@ -183,16 +283,42 @@ export async function generateContent(
         `[Groq] Attempt ${attempt}/${maxAttempts} failed: ${classified.type} - ${classified.message}`
       );
 
+      // Non-retryable errors (e.g. invalid key, model error, bad request) fail immediately
       if (!classified.retryable || attempt === maxAttempts) {
+        recordCircuitFailure();
         throw new Error(`Groq API error (${classified.type}): ${classified.message}`);
       }
 
       const delay = baseDelay * Math.pow(2, attempt - 1);
-      console.warn(`[Groq] Retrying in ${delay}ms...`);
       await sleep(delay);
     }
   }
 
+  recordCircuitFailure();
   throw new Error('Groq API: all retry attempts exhausted');
 }
 
+/**
+ * Public generateContent method with request coalescing/deduplication.
+ * Identical concurrent requests share the exact same pending in-flight promise.
+ */
+export async function generateContent(
+  prompt: string,
+  validator?: (text: string) => boolean
+): Promise<string> {
+  const promptHash = crypto.createHash('sha256').update(prompt.trim()).digest('hex');
+
+  // Request Coalescing / Deduplication
+  const existingPromise = inFlightRequests.get(promptHash);
+  if (existingPromise) {
+    metrics.coalescedRequests++;
+    return existingPromise;
+  }
+
+  const promise = executeGroqRequest(prompt, validator).finally(() => {
+    inFlightRequests.delete(promptHash);
+  });
+
+  inFlightRequests.set(promptHash, promise);
+  return promise;
+}

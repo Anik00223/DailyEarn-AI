@@ -1,6 +1,6 @@
-// Always-live server with graceful shutdown, auto-reconnect, and health monitoring
+// Production-hardened server with graceful shutdown, telemetry, liveness/readiness probes, and strict security
 import 'dotenv/config';
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -14,8 +14,9 @@ import { userRouter } from './modules/user/user.routes';
 import { locationsRouter } from './modules/locations/locations.routes';
 import { decisionRouter } from './modules/decision/decision.routes';
 import { seedOpportunities } from './db/seeds/seed';
-import { connectRedis, disconnectRedis, getRedisClient } from './config/redis';
-import { testDatabaseConnection, getDbPool } from './config/database';
+import { connectRedis, disconnectRedis, isRedisAvailable } from './config/redis';
+import { testDatabaseConnection, getDbPool, getPoolStats } from './config/database';
+import { getGroqMetrics } from './config/groq';
 import { initializeWorker } from './queues/workers/ideaWorker';
 import { monitor } from './utils/monitor';
 import { db } from './db';
@@ -31,37 +32,37 @@ let shuttingDown = false;
 
 async function gracefulShutdown(signal: string) {
   if (shuttingDown) {
-    console.warn('?? Received ' + signal + ' again - forcing exit');
+    console.warn('⚠️ Received ' + signal + ' again - forcing exit');
     process.exit(1);
   }
   shuttingDown = true;
-  console.log('\n?? Received ' + signal + ' - shutting down gracefully...');
+  console.log(`\n🛑 Received ${signal} - shutting down gracefully...`);
 
   if (server) {
     server.close(async (err: Error | undefined) => {
       if (err) {
-        console.error('? Error closing server:', err.message);
+        console.error('❌ Error closing server:', err.message);
         process.exit(1);
       }
-      console.log('? HTTP server closed');
+      console.log('✅ HTTP server closed');
       try {
         const pool = getDbPool();
         await pool.end();
-        console.log('? PostgreSQL pool closed');
+        console.log('✅ PostgreSQL pool closed');
       } catch (e: unknown) {
-        console.error('? Error closing DB pool:', e instanceof Error ? e.message : e);
+        console.error('❌ Error closing DB pool:', e instanceof Error ? e.message : e);
       }
       try {
         await disconnectRedis();
-        console.log('? Redis disconnected');
+        console.log('✅ Redis disconnected');
       } catch (e: unknown) {
-        console.error('? Error disconnecting Redis:', e instanceof Error ? e.message : e);
+        console.error('❌ Error disconnecting Redis:', e instanceof Error ? e.message : e);
       }
-      console.log('? Shutdown complete');
+      console.log('✅ Shutdown complete');
       process.exit(0);
     });
     setTimeout(() => {
-      console.error('?? Forced shutdown after timeout');
+      console.error('⚠️ Forced shutdown after timeout');
       process.exit(1);
     }, 15000);
   } else {
@@ -93,44 +94,55 @@ process.on('unhandledRejection', (reason: unknown) => {
   }));
 });
 
-const configuredOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
+// ─── STRICT PRODUCTION CORS POLICY ───
+// Reject '*' when credentials are enabled. Match ONLY configured origins.
+const configuredOrigins = env.CORS_ORIGIN.split(',')
+  .map((o) => o.trim())
+  .filter((o) => o && o !== '*');
 
-const isOriginAllowed = (origin?: string): boolean => {
-  if (!origin) return true;
+const defaultProductionOrigin = 'https://dailyearn-frontend.onrender.com';
+if (!configuredOrigins.includes(defaultProductionOrigin)) {
+  configuredOrigins.push(defaultProductionOrigin);
+}
+
+export const isOriginAllowed = (origin?: string): boolean => {
+  if (!origin) return true; // Allow same-origin / server-to-server / curl
   if (env.NODE_ENV !== 'production') {
     if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
       return true;
     }
   }
-  if (configuredOrigins.includes('*') || configuredOrigins.includes(origin)) {
-    return true;
-  }
-  if (/^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(origin)) {
-    return true;
-  }
-  return false;
+  return configuredOrigins.includes(origin);
 };
 
-// Security
+// ─── SECURITY HEADERS (HELMET) ───
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        styleSrc: ["'self'", 'https://fonts.googleapis.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         connectSrc: [
           "'self'",
-          'https://*.onrender.com',
           ...configuredOrigins,
           ...(env.NODE_ENV !== 'production'
             ? ['http://localhost:*', 'http://127.0.0.1:*', 'ws://localhost:*', 'ws://127.0.0.1:*']
             : []),
         ],
         frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
       },
     },
+    crossOriginEmbedderPolicy: false,
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    frameguard: { action: 'deny' },
+    noSniff: true,
   })
 );
 
@@ -144,73 +156,118 @@ const corsOptions: cors.CorsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+  maxAge: 86400, // 24 hours preflight cache
 };
 
 app.use(cors(corsOptions));
-
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
-
 app.use(requestIdMiddleware);
-app.use(globalLimiter);
 
-// Enhanced health check (safe for production probes)
-async function computeHealthChecks() {
-  const checks: Record<string, string> = {};
+// ─── OBSERVABILITY & TELEMETRY LOGGER ───
+// Structured JSON logs with latency, status, route, and pool utilization (Never logging secrets/auth)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const startTime = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    // Skip noisy probe logging
+    if (req.path === '/health/liveness') return;
+
+    const logEntry = {
+      level: res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info',
+      requestId: req.id,
+      method: req.method,
+      route: req.baseUrl ? `${req.baseUrl}${req.path}` : req.path,
+      statusCode: res.statusCode,
+      durationMs: duration,
+      ip: req.ip,
+      timestamp: new Date().toISOString(),
+    };
+    if (res.statusCode >= 500) {
+      console.error(JSON.stringify(logEntry));
+    } else {
+      console.log(JSON.stringify(logEntry));
+    }
+  });
+  next();
+});
+
+// ─── HEALTH & READINESS PROBES (SEPARATED) ───
+
+// 1. Liveness Probe: Fast, lightweight check indicating process is alive (No DB query)
+app.get('/health/liveness', (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'alive',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// 2. Readiness Probe: Checks critical dependencies (PostgreSQL pool readiness)
+app.get('/health/readiness', async (_req: Request, res: Response) => {
   try {
     const pool = getDbPool();
     await pool.query('SELECT 1');
-    checks.database = 'ok';
-  } catch {
-    checks.database = 'error';
+    const poolStats = getPoolStats();
+    res.status(200).json({
+      status: 'ready',
+      database: 'connected',
+      pool: poolStats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown DB error';
+    res.status(503).json({
+      status: 'not_ready',
+      database: 'error',
+      error: msg,
+      timestamp: new Date().toISOString(),
+    });
   }
+});
+
+// 3. API Health endpoint (Backward-compatible comprehensive diagnostic)
+app.get(['/api/health', '/health'], async (_req: Request, res: Response) => {
+  let dbOk = false;
   try {
-    const client = getRedisClient();
-    if (client && client.isOpen) {
-      await client.ping();
-      checks.redis = 'ok';
-    } else {
-      checks.redis = 'degraded';
-    }
+    const pool = getDbPool();
+    await pool.query('SELECT 1');
+    dbOk = true;
   } catch {
-    checks.redis = 'error';
+    dbOk = false;
   }
-  // Database is the critical dependency. If DB is ok, service is healthy (200).
-  const isHealthy = checks.database === 'ok';
-  return { isHealthy, checks };
-}
 
-// API health endpoint (used by Render and uptime monitors)
-app.get('/api/health', async (_req: Request, res: Response) => {
-  const { isHealthy, checks } = await computeHealthChecks();
+  const redisOk = isRedisAvailable();
+  const poolStats = getPoolStats();
+  const groqMetrics = getGroqMetrics();
+
+  const isHealthy = dbOk; // Database is the authoritative critical service
   res.status(isHealthy ? 200 : 503).json({
-    status: isHealthy ? (checks.redis === 'ok' ? 'ok' : 'degraded') : 'unhealthy',
-    db: checks.database === 'ok',
-    redis: checks.redis === 'ok',
+    status: isHealthy ? (redisOk ? 'ok' : 'degraded') : 'unhealthy',
+    database: dbOk ? 'ok' : 'error',
+    redis: redisOk ? 'ok' : 'degraded',
+    pool: poolStats,
+    groq: {
+      circuitState: groqMetrics.circuitState,
+      failureCount: groqMetrics.failureCount,
+    },
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    checks,
   });
 });
 
-// Root health endpoint used by Docker/Nginx (keeps backwards compatibility)
-app.get('/health', async (_req: Request, res: Response) => {
-  const { isHealthy, checks } = await computeHealthChecks();
-  res.status(isHealthy ? 200 : 503).json({
-    status: isHealthy ? (checks.redis === 'ok' ? 'ok' : 'degraded') : 'unhealthy',
-    db: checks.database === 'ok',
-    redis: checks.redis === 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    checks,
-  });
-});
-
-// Monitor endpoint for PM2 / load balancer
+// Monitor endpoint for system resources
 app.get('/api/monitor', (_req: Request, res: Response) => {
-  res.json(monitor());
+  res.json({
+    ...monitor(),
+    pool: getPoolStats(),
+    groq: getGroqMetrics(),
+  });
 });
+
+// Apply Global Rate Limiter to business routes
+app.use(globalLimiter);
 
 // Routes
 app.use('/api/auth', authRouter);
@@ -245,7 +302,7 @@ async function startServer(): Promise<void> {
         await connectRedis();
         redisOk = true;
       } catch {
-        console.warn('⚠️ Redis connection failed - caching and rate limiting will use in-memory fallback');
+        console.warn('⚠️ Redis connection failed - distributed rate limiting will use in-memory fallback');
       }
       if (redisOk) {
         initializeWorker();
@@ -272,8 +329,8 @@ async function startServer(): Promise<void> {
       server = app.listen(env.PORT, '0.0.0.0', () => {
         console.log(`[Server] DailyEarn AI backend listening on 0.0.0.0:${env.PORT}`);
         console.log(`[Server] Environment: ${env.NODE_ENV}`);
-        console.log(`[Server] CORS origin: ${env.CORS_ORIGIN}`);
-        console.log(`[Server] Database: connected`);
+        console.log(`[Server] CORS origins allowed: ${configuredOrigins.join(', ')}`);
+        console.log(`[Server] Database: connected (Pool size: ${getPoolStats().maxAllowed})`);
         console.log(`[Server] PID: ${process.pid}`);
 
         // Keep-alive self-ping for Render / Cloud deployments (prevents 15-min idle spin-down)
@@ -286,7 +343,7 @@ async function startServer(): Promise<void> {
           setInterval(async () => {
             try {
               const https = await import('https');
-              const targetUrl = `${renderUrl.replace(/\/$/, '')}/api/health`;
+              const targetUrl = `${renderUrl.replace(/\/$/, '')}/health/liveness`;
               https.get(targetUrl, (res) => {
                 if (res.statusCode && res.statusCode < 400) {
                   console.log(`[KeepAlive] Ping successful: HTTP ${res.statusCode} at ${new Date().toISOString()}`);
@@ -304,7 +361,7 @@ async function startServer(): Promise<void> {
 
       server.on('error', (err: NodeJS.ErrnoException) => {
         if (err.code === 'EADDRINUSE') {
-          console.error('? Port ' + env.PORT + ' already in use');
+          console.error('❌ Port ' + env.PORT + ' already in use');
           setTimeout(() => process.exit(0), 1000);
         }
       });
@@ -314,9 +371,9 @@ async function startServer(): Promise<void> {
     } catch (error) {
       retryCount++;
       const waitMs = Math.min(1000 * Math.pow(2, retryCount), 30000);
-      console.error('? Start failed (attempt ' + retryCount + '/' + maxRetries + '):', error);
+      console.error('❌ Start failed (attempt ' + retryCount + '/' + maxRetries + '):', error);
       if (retryCount >= maxRetries) {
-        console.error('? Max retries exhausted - exiting so PM2 can restart');
+        console.error('❌ Max retries exhausted - exiting so process manager can restart');
         process.exit(1);
       }
       await new Promise((r) => setTimeout(r, waitMs));

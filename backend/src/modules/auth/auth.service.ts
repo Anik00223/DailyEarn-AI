@@ -6,6 +6,7 @@ import { db } from '../../db/index';
 import { users, sessions } from '../../db/schema/index';
 import { env } from '../../config/env';
 import { createError } from '../../middleware/errorHandler';
+import { markUserTokensRevoked } from '../../config/redis';
 import type { RegisterInput, LoginInput } from './auth.schema';
 
 interface TokenPair {
@@ -32,13 +33,13 @@ function generateTokenPair(userId: string, email: string): TokenPair {
   const accessToken = jwt.sign(
     { userId, email },
     env.JWT_ACCESS_SECRET,
-    { expiresIn: '15m' }
+    { expiresIn: '15m', algorithm: 'HS256' }
   );
 
   const refreshToken = jwt.sign(
     { userId, email, tokenId: crypto.randomUUID() },
     env.JWT_REFRESH_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '7d', algorithm: 'HS256' }
   );
 
   return { accessToken, refreshToken };
@@ -192,6 +193,8 @@ export async function refresh(
       .set({ isRevoked: true })
       .where(eq(sessions.tokenFamily, matchedSession.tokenFamily));
 
+    await markUserTokensRevoked(matchedSession.userId);
+
     throw createError(401, 'REFRESH_TOKEN_REUSE', 'Token reuse detected. All sessions revoked.');
   }
 
@@ -241,10 +244,15 @@ export async function refresh(
 
 export async function logout(refreshToken: string): Promise<void> {
   const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-  await db
+  const [session] = await db
     .update(sessions)
     .set({ isRevoked: true })
-    .where(eq(sessions.refreshTokenHash, tokenHash));
+    .where(eq(sessions.refreshTokenHash, tokenHash))
+    .returning({ userId: sessions.userId });
+
+  if (session?.userId) {
+    await markUserTokensRevoked(session.userId);
+  }
 }
 
 export async function getMe(userId: string) {

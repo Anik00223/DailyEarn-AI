@@ -1,9 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import DOMPurify from 'isomorphic-dompurify';
 
+export function sanitizeText(value: string): string {
+  return DOMPurify.sanitize(value.trim());
+}
+
 function sanitizeValue(value: unknown): unknown {
   if (typeof value === 'string') {
-    return DOMPurify.sanitize(value.trim());
+    return sanitizeText(value);
   }
   if (Array.isArray(value)) {
     return value.map(sanitizeValue);

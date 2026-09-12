@@ -37,6 +37,16 @@ const envSchema = z.object({
   BCRYPT_ROUNDS: z.string().default('12').transform(Number),
   CORS_ORIGIN: z.string().default('*'),
   ADMIN_SECRET: z.string().default('dailyearn_admin_secret_minimum_32_chars_1234'),
+  // Scale & Database Connection Budgeting
+  MAX_DB_CONNECTIONS: z.string().default('100').transform(Number),
+  RESERVED_CONNECTIONS: z.string().default('20').transform(Number),
+  BACKEND_INSTANCES: z.string().default('1').transform(Number),
+  DATABASE_POOL_SIZE: z.string().optional().transform((val) => (val ? Number(val) : undefined)),
+  STATEMENT_TIMEOUT_MS: z.string().default('5000').transform(Number),
+  // Groq & Circuit Breaker Limits
+  GROQ_TIMEOUT_MS: z.string().default('8000').transform(Number),
+  CIRCUIT_BREAKER_FAIL_THRESHOLD: z.string().default('5').transform(Number),
+  CIRCUIT_BREAKER_RESET_TIMEOUT_MS: z.string().default('30000').transform(Number),
 });
 
 export type Env = z.infer<typeof envSchema>;

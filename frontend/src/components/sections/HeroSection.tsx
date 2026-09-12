@@ -1,135 +1,56 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Check, MapPin, Clock, IndianRupee, Compass, ChevronRight, Shield, Zap } from 'lucide-react';
-import { IncomeIntelligenceFlow } from './IncomeIntelligenceFlow';
+import { ArrowRight, Check, Sliders, ChevronDown, Sparkles } from 'lucide-react';
+import type { CalculationModel } from './DailyEarnCockpit';
 
-const CITIES = ['Silchar', 'Patna', 'Kota', 'Pune', 'Guntur', 'Jorhat', 'Ranchi', 'Nagpur'];
+const POPULAR_CITIES = ['Silchar', 'Patna', 'Kota', 'Pune', 'Kolkata', 'Guwahati', 'Guntur'];
+const SKILLS: Array<'Teaching' | 'Delivery' | 'Digital'> = ['Teaching', 'Delivery', 'Digital'];
 
-function AnimatedNumber({ value }: { value: number }) {
-  const [displayValue, setDisplayValue] = useState(value);
-  const prevValueRef = useRef(value);
-
-  useEffect(() => {
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) {
-      setDisplayValue(value);
-      prevValueRef.current = value;
-      return;
-    }
-
-    const start = prevValueRef.current;
-    const end = value;
-    const duration = 550; // 400-700ms smooth financial interpolation
-    const startTime = performance.now();
-
-    let animId: number;
-    const update = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      const current = Math.round(start + (end - start) * easeOut);
-      setDisplayValue(current);
-
-      if (progress < 1) {
-        animId = requestAnimationFrame(update);
-      } else {
-        prevValueRef.current = end;
-      }
-    };
-
-    animId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(animId);
-  }, [value]);
-
-  return <span>₹{displayValue.toLocaleString('en-IN')}</span>;
+interface HeroSectionProps {
+  selectedCity: string;
+  onSelectCity: (city: string) => void;
+  selectedSkill: 'Teaching' | 'Delivery' | 'Digital';
+  onSelectSkill: (skill: 'Teaching' | 'Delivery' | 'Digital') => void;
+  selectedHours: number;
+  onSelectHours: (hours: number) => void;
+  targetIncome: number;
+  onSelectTarget: (target: number) => void;
+  calculation: CalculationModel;
 }
 
-export function HeroSection() {
+export function HeroSection({
+  selectedCity,
+  onSelectCity,
+  selectedSkill,
+  onSelectSkill,
+  selectedHours,
+  onSelectHours,
+  targetIncome,
+  onSelectTarget,
+  calculation,
+}: HeroSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
 
-  // Interactive Product Hero States
-  const [selectedCity, setSelectedCity] = useState('Silchar');
-  const [selectedSkill, setSelectedSkill] = useState<'Teaching' | 'Delivery' | 'Digital'>('Teaching');
-  const [selectedHours, setSelectedHours] = useState<number>(4);
-  const [targetIncome, setTargetIncome] = useState<number>(800);
-
-  // Real-time deterministic calculation model (100% faithful to backend engines)
-  const calculation = useMemo(() => {
-    if (selectedSkill === 'Teaching') {
-      const ratePerSession = selectedCity === 'Pune' ? 450 : selectedCity === 'Kota' ? 420 : 370;
-      const sessions = selectedHours >= 6 ? 4 : selectedHours >= 4 ? 3 : 1;
-      const gross = sessions * ratePerSession;
-      const net = gross; // Local home tutoring has 0% platform fee and negligible commute
-      return {
-        gross,
-        net,
-        platform: 'Local Home Tutoring',
-        platformFee: 0,
-        fuelCost: 0,
-        unitDetail: `${sessions} sessions @ ₹${ratePerSession}`,
-        feasible: net >= targetIncome,
-        gap: Math.max(0, targetIncome - net),
-      };
-    } else if (selectedSkill === 'Delivery') {
-      const ordersPerHour = 1.6;
-      const totalOrders = Math.round(selectedHours * ordersPerHour);
-      const payoutPerOrder = 65;
-      const gross = totalOrders * payoutPerOrder;
-      const platformFee = Math.round(gross * 0.18);
-      const fuelCost = Math.round(totalOrders * 15);
-      const net = Math.max(0, gross - platformFee - fuelCost);
-      return {
-        gross,
-        net,
-        platform: 'Rapido / Swiggy Fleet',
-        platformFee,
-        fuelCost,
-        unitDetail: `${totalOrders} orders @ ₹${payoutPerOrder}`,
-        feasible: net >= targetIncome,
-        gap: Math.max(0, targetIncome - net),
-      };
-    } else {
-      const hourlyRate = selectedCity === 'Pune' ? 260 : 210;
-      const gross = selectedHours * hourlyRate;
-      const platformFee = Math.round(gross * 0.10);
-      const fuelCost = 0;
-      const net = gross - platformFee;
-      return {
-        gross,
-        net,
-        platform: 'Remote Platform & Freelance',
-        platformFee,
-        fuelCost,
-        unitDetail: `${selectedHours} billable hrs @ ₹${hourlyRate}`,
-        feasible: net >= targetIncome,
-        gap: Math.max(0, targetIncome - net),
-      };
-    }
-  }, [selectedCity, selectedSkill, selectedHours, targetIncome]);
-
-  // Subtle page entrance animation
+  // Subtle 0–5 second entrance sequence (intentional, premium, non-blocking)
   useEffect(() => {
     if (!sectionRef.current) return;
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) return;
 
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        '.hero-left-col > *',
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.5, stagger: 0.08, ease: 'power2.out' }
-      );
-      gsap.fromTo(
-        '.hero-card-col',
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, delay: 0.15, ease: 'power2.out' }
-      );
-      gsap.fromTo(
-        '.hero-pillars > *',
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.5, delay: 0.3, stagger: 0.06, ease: 'power2.out' }
+      const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+
+      tl.fromTo(
+        '.hero-editorial > *',
+        { y: 14, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, stagger: 0.08 }
+      ).fromTo(
+        '.hero-console-dock',
+        { y: 18, opacity: 0, scale: 0.98 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.6 },
+        '-=0.2'
       );
     }, sectionRef);
 
@@ -142,428 +63,412 @@ export function HeroSection() {
       style={{
         position: 'relative',
         zIndex: 1,
-        padding: '100px 24px 64px',
-        maxWidth: 1200,
+        padding: '50px 24px 36px',
+        maxWidth: 1240,
         margin: '0 auto',
       }}
     >
-      {/* 1. ASYMMETRIC EDITORIAL PRODUCT SPLIT */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-          gap: 48,
-          alignItems: 'center',
-          marginBottom: 64,
-        }}
-      >
-        {/* LEFT COLUMN: Human Editorial Messaging */}
-        <div className="hero-left-col" style={{ textAlign: 'left' }}>
-          <div
+      {/* 1. EDITORIAL HEADLINE & INTRODUCTION */}
+      <div className="hero-editorial" style={{ textAlign: 'center', maxWidth: 880, margin: '0 auto 32px' }}>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '4px 14px',
+            borderRadius: 20,
+            background: 'rgba(0, 242, 254, 0.08)',
+            border: '1px solid rgba(0, 242, 254, 0.25)',
+            fontSize: '0.76rem',
+            color: '#94A3B8',
+            marginBottom: 16,
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: '#00F2FE',
+              boxShadow: '0 0 8px #00F2FE',
+            }}
+          />
+          <span style={{ color: '#E2E8F0', fontWeight: 600 }}>Hyper-local income intelligence for India</span>
+        </div>
+
+        <h1
+          style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'clamp(2.2rem, 4.4vw, 3.5rem)',
+            fontWeight: 800,
+            lineHeight: 1.15,
+            letterSpacing: '-0.03em',
+            color: '#FFFFFF',
+            marginBottom: 16,
+          }}
+        >
+          Know what your time can{' '}
+          <span
+            style={{
+              background: 'linear-gradient(135deg, #00F2FE 0%, #38BDF8 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              position: 'relative',
+              display: 'inline-block',
+            }}
+          >
+            realistically earn.
+          </span>
+        </h1>
+
+        <p
+          style={{
+            fontSize: '1.02rem',
+            color: '#94A3B8',
+            lineHeight: 1.6,
+            maxWidth: 680,
+            margin: '0 auto 24px',
+          }}
+        >
+          DailyEarn analyzes your city, skills, available hours, and target to calculate verified local income
+          opportunities — subtracting platform commissions, vehicle fuel, and deadhead transit miles.
+        </p>
+
+        {/* CTA Buttons */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 14,
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            marginBottom: 20,
+          }}
+        >
+          <button
+            className="btn-primary"
+            onClick={() => navigate('/register')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              padding: '4px 10px',
-              borderRadius: 6,
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid var(--border-subtle)',
-              fontSize: '0.78rem',
-              color: 'var(--text-secondary)',
-              marginBottom: 18,
-            }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
-            <span>Hyper-local income intelligence for India</span>
-          </div>
-
-          <h1
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 'clamp(2.3rem, 3.8vw, 3.3rem)',
+              padding: '12px 24px',
+              borderRadius: 8,
               fontWeight: 700,
-              lineHeight: 1.16,
-              letterSpacing: '-0.02em',
+              fontSize: '0.92rem',
+              background: 'linear-gradient(135deg, #00B4D8, #0077B6)',
               color: '#FFFFFF',
-              marginBottom: 18,
+              boxShadow: '0 4px 18px rgba(0, 180, 216, 0.4)',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
             }}
           >
-            Turn the time you have <br />
-            <span className="hero-highlight" style={{ color: 'var(--accent)', position: 'relative', display: 'inline-block' }}>
-              into income that makes sense.
-              <span className="hero-underline-marker" aria-hidden="true" />
-            </span>
-          </h1>
-
-          <p
+            Calculate My Income <ArrowRight size={16} />
+          </button>
+          <a
+            href="#how-it-works"
+            className="btn-secondary"
             style={{
-              fontSize: '1.02rem',
-              color: 'var(--text-secondary)',
-              lineHeight: 1.6,
-              maxWidth: 500,
-              marginBottom: 28,
-            }}
-          >
-            DailyEarn calculates your realistic daily net take-home pay across tutoring, delivery, and gig platforms in 50+ Indian cities — accounting for platform commissions, vehicle fuel, and your available hours.
-          </p>
-
-          <div
-            style={{
-              display: 'flex',
-              gap: 12,
-              flexWrap: 'wrap',
+              padding: '12px 20px',
+              borderRadius: 8,
+              fontSize: '0.9rem',
+              color: '#CBD5E1',
+              border: '1px solid #334155',
+              background: 'rgba(255, 255, 255, 0.03)',
+              textDecoration: 'none',
+              display: 'inline-flex',
               alignItems: 'center',
-              marginBottom: 28,
+              gap: 6,
+              transition: 'all 0.2s ease',
             }}
           >
-            <button
-              className="btn-primary"
-              onClick={() => navigate('/register')}
-            >
-              Start Free Evaluation <ArrowRight size={15} />
-            </button>
-            <a
-              href="#how-it-works"
-              className="btn-secondary"
-            >
-              See How the Math Works
-            </a>
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-              flexWrap: 'wrap',
-              fontSize: '0.78rem',
-              color: 'var(--text-muted)',
-              borderTop: '1px solid var(--border-subtle)',
-              paddingTop: 16,
-            }}
-          >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <Check size={13} color="var(--accent)" /> Deterministic arithmetic
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <Check size={13} color="var(--accent)" /> Real fuel consumption
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <Check size={13} color="var(--accent)" /> Zero false promises
-            </span>
-          </div>
+            Explore Live Model <ChevronDown size={14} />
+          </a>
         </div>
 
-        {/* RIGHT COLUMN: Interactive Live Product Console */}
-        <div className="hero-card-col">
-          <div
-            className="product-card"
-            style={{
-              padding: '24px 22px',
-              textAlign: 'left',
-            }}
-          >
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-              <div>
-                <span style={{ fontSize: '0.72rem', color: 'var(--accent)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
-                  Interactive Simulator
-                </span>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF', margin: '3px 0 0' }}>
-                  Plan Your Daily Income
-                </h3>
-              </div>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  padding: '2px 7px',
-                  borderRadius: 4,
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--border-subtle)',
-                }}
-              >
-                {selectedCity} Benchmark
-              </span>
-            </div>
-
-            {/* Field 1: City */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 5, fontWeight: 500 }}>
-                WHERE ARE YOU?
-              </label>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {CITIES.slice(0, 5).map((city) => (
-                  <button
-                    key={city}
-                    type="button"
-                    onClick={() => setSelectedCity(city)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 5,
-                      fontSize: '0.78rem',
-                      border: `1px solid ${selectedCity === city ? 'var(--accent)' : 'var(--border-subtle)'}`,
-                      background: selectedCity === city ? 'var(--accent-muted)' : 'transparent',
-                      color: selectedCity === city ? 'var(--accent)' : 'var(--text-secondary)',
-                      fontWeight: selectedCity === city ? 600 : 400,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {city}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Field 2: Skill */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 5, fontWeight: 500 }}>
-                WHAT CAN YOU DO?
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                {[
-                  { id: 'Teaching', label: 'Teaching' },
-                  { id: 'Delivery', label: 'Delivery' },
-                  { id: 'Digital', label: 'Freelance' },
-                ].map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setSelectedSkill(s.id as any)}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: 5,
-                      fontSize: '0.78rem',
-                      textAlign: 'center',
-                      border: `1px solid ${selectedSkill === s.id ? 'var(--accent)' : 'var(--border-subtle)'}`,
-                      background: selectedSkill === s.id ? 'var(--accent-muted)' : 'transparent',
-                      color: selectedSkill === s.id ? 'var(--accent)' : 'var(--text-secondary)',
-                      fontWeight: selectedSkill === s.id ? 600 : 400,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Field 3: Time Available */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                  TIME AVAILABLE PER DAY
-                </label>
-                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#FFFFFF' }}>
-                  {selectedHours} hours/day
-                </span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                {[2, 4, 6].map((hrs) => (
-                  <button
-                    key={hrs}
-                    type="button"
-                    onClick={() => setSelectedHours(hrs)}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: 5,
-                      fontSize: '0.78rem',
-                      border: `1px solid ${selectedHours === hrs ? 'var(--accent)' : 'var(--border-subtle)'}`,
-                      background: selectedHours === hrs ? 'var(--accent-muted)' : 'transparent',
-                      color: selectedHours === hrs ? 'var(--accent)' : 'var(--text-secondary)',
-                      fontWeight: selectedHours === hrs ? 600 : 400,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {hrs} Hours
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Field 4: Target Income */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                  DAILY INCOME TARGET
-                </label>
-                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#FFFFFF' }}>
-                  ₹{targetIncome}/day
-                </span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                {[500, 800, 1200].map((tgt) => (
-                  <button
-                    key={tgt}
-                    type="button"
-                    onClick={() => setTargetIncome(tgt)}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: 5,
-                      fontSize: '0.78rem',
-                      border: `1px solid ${targetIncome === tgt ? 'var(--accent)' : 'var(--border-subtle)'}`,
-                      background: targetIncome === tgt ? 'var(--accent-muted)' : 'transparent',
-                      color: targetIncome === tgt ? 'var(--accent)' : 'var(--text-secondary)',
-                      fontWeight: targetIncome === tgt ? 600 : 400,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    ₹{tgt}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Signature Hero Animation: Income Intelligence Data Path */}
-            <IncomeIntelligenceFlow
-              city={selectedCity}
-              skill={selectedSkill}
-              hours={selectedHours}
-              target={targetIncome}
-              calculation={calculation}
-            />
-
-            {/* Result Box (Tactile Product Result) */}
-            <div
-              style={{
-                background: 'var(--bg-base)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 8,
-                padding: '14px',
-                marginBottom: 14,
-                transition: 'border-color 0.2s ease',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Modeled Net Daily</span>
-                <span style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
-                  <AnimatedNumber value={calculation.net} />{' '}
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>/ day</span>
-                </span>
-              </div>
-
-              <div
-                key={`${calculation.feasible}-${calculation.gap}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: '0.75rem',
-                  marginBottom: 8,
-                  animation: 'disclosureIn 0.25s ease-out',
-                }}
-              >
-                {calculation.feasible ? (
-                  <span style={{ color: 'var(--success)', fontWeight: 600 }}>
-                    ✓ Target ₹{targetIncome}/day is feasible
-                  </span>
-                ) : (
-                  <span style={{ color: 'var(--warning)', fontWeight: 600 }}>
-                    ⚠ ₹{calculation.gap}/day shortfall under {selectedHours} hrs
-                  </span>
-                )}
-              </div>
-
-              <div
-                key={`${calculation.platform}-${calculation.unitDetail}`}
-                style={{
-                  fontSize: '0.74rem',
-                  color: 'var(--text-secondary)',
-                  borderTop: '1px solid var(--border-subtle)',
-                  paddingTop: 7,
-                  animation: 'disclosureIn 0.25s ease-out',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <span>Top match:</span>
-                  <strong style={{ color: '#FFFFFF' }}>{calculation.platform}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
-                  <span>Throughput:</span>
-                  <span>{calculation.unitDetail}</span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              className="btn-primary"
-              style={{ width: '100%', padding: '9px 16px', fontSize: '0.84rem' }}
-              onClick={() => navigate('/register')}
-            >
-              Unlock 7-Day Plan for {selectedCity} <ChevronRight size={14} />
-            </button>
-          </div>
+        {/* Trust Strip */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 20,
+            flexWrap: 'wrap',
+            fontSize: '0.78rem',
+            color: '#64748B',
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <Check size={13} color="#00F2FE" /> Deterministic arithmetic
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <Check size={13} color="#00F2FE" /> Real fuel & commission deductions
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <Check size={13} color="#00F2FE" /> Zero false promises
+          </span>
         </div>
       </div>
 
-      {/* 2. "WHAT YOU GET" - REPLACING THE DECORATIVE TELEMETRY DOCK */}
-      <div className="hero-pillars" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 40, textAlign: 'left' }}>
-        <div style={{ marginBottom: 24 }}>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>
-            WHY DAILYEARN EXISTS
+      {/* 2. IMMEDIATE INTERACTIVE CONSOLE DOCK */}
+      <div
+        className="hero-console-dock product-card"
+        style={{
+          maxWidth: 960,
+          margin: '0 auto',
+          padding: '20px 24px',
+          borderRadius: 16,
+          background: '#0B111A',
+          border: '1px solid #1E293B',
+          boxShadow: '0 12px 32px -8px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.04)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 16,
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Sliders size={15} color="#00F2FE" />
+            <span
+              style={{
+                fontSize: '0.72rem',
+                color: '#00F2FE',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              Interactive Scenario Calibrator
+            </span>
+          </div>
+          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>
+            Updates reasoning engine below in real time
           </span>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#FFFFFF', marginTop: 4 }}>
-            Four things you get before you spend one rupee.
-          </h2>
         </div>
 
+        {/* 4 Inputs Grid */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: 20,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 16,
+            alignItems: 'flex-start',
           }}
         >
-          <div className="product-card benefit-pillar" style={{ padding: '20px 18px' }}>
-            <div className="pillar-icon" style={{ width: 30, height: 30, borderRadius: 6, background: 'rgba(0, 180, 216, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-              <IndianRupee size={15} color="var(--accent)" />
+          {/* City Selector */}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.68rem',
+                color: '#94A3B8',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                marginBottom: 6,
+              }}
+            >
+              City ({selectedCity})
+            </label>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {POPULAR_CITIES.map((city) => (
+                <button
+                  key={city}
+                  type="button"
+                  onClick={() => onSelectCity(city)}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 5,
+                    fontSize: '0.73rem',
+                    border: `1px solid ${selectedCity === city ? '#00F2FE' : '#1E293B'}`,
+                    background: selectedCity === city ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                    color: selectedCity === city ? '#00F2FE' : '#94A3B8',
+                    fontWeight: selectedCity === city ? 700 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {city}
+                </button>
+              ))}
             </div>
-            <h4 style={{ fontSize: '0.94rem', fontWeight: 600, color: '#FFFFFF', marginBottom: 5 }}>
-              Realistic Daily Ceiling
-            </h4>
-            <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
-              Understand what you actually take home after 18–25% platform commissions, deadhead commute miles, and real pump fuel prices.
-            </p>
           </div>
 
-          <div className="product-card benefit-pillar" style={{ padding: '20px 18px' }}>
-            <div className="pillar-icon" style={{ width: 30, height: 30, borderRadius: 6, background: 'rgba(0, 180, 216, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-              <Clock size={15} color="var(--accent)" />
+          {/* Skill Selector */}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.68rem',
+                color: '#94A3B8',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                marginBottom: 6,
+              }}
+            >
+              Primary Skill
+            </label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {SKILLS.map((skill) => (
+                <button
+                  key={skill}
+                  type="button"
+                  onClick={() => onSelectSkill(skill)}
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    fontSize: '0.75rem',
+                    border: `1px solid ${selectedSkill === skill ? '#8B5CF6' : '#1E293B'}`,
+                    background: selectedSkill === skill ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                    color: selectedSkill === skill ? '#A78BFA' : '#94A3B8',
+                    fontWeight: selectedSkill === skill ? 700 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {skill}
+                </button>
+              ))}
             </div>
-            <h4 style={{ fontSize: '0.94rem', fontWeight: 600, color: '#FFFFFF', marginBottom: 5 }}>
-              Constraint-First Matching
-            </h4>
-            <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
-              Rankings calibrated to your genuine reality — whether you have 2 spare hours, no vehicle, zero capital, or beginner experience.
-            </p>
           </div>
 
-          <div className="product-card benefit-pillar" style={{ padding: '20px 18px' }}>
-            <div className="pillar-icon" style={{ width: 30, height: 30, borderRadius: 6, background: 'rgba(0, 180, 216, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-              <Shield size={15} color="var(--accent)" />
+          {/* Hours Slider */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  color: '#94A3B8',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                Available Time
+              </span>
+              <span style={{ fontSize: '0.75rem', color: '#00F2FE', fontWeight: 700 }}>
+                {selectedHours} hrs / day
+              </span>
             </div>
-            <h4 style={{ fontSize: '0.94rem', fontWeight: 600, color: '#FFFFFF', marginBottom: 5 }}>
-              Transparent 8-Factor Fit
-            </h4>
-            <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
-              Zero black-box AI magic. Complete visibility into payout speed, physical effort, local demand, and safety scores.
-            </p>
+            <input
+              type="range"
+              min="2"
+              max="10"
+              step="1"
+              value={selectedHours}
+              onChange={(e) => onSelectHours(Number(e.target.value))}
+              style={{
+                width: '100%',
+                accentColor: '#00F2FE',
+                cursor: 'pointer',
+              }}
+            />
           </div>
 
-          <div className="product-card benefit-pillar" style={{ padding: '20px 18px' }}>
-            <div className="pillar-icon" style={{ width: 30, height: 30, borderRadius: 6, background: 'rgba(0, 180, 216, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-              <Zap size={15} color="var(--accent)" />
+          {/* Target Income Input */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  color: '#94A3B8',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                Daily Target
+              </span>
+              <span style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 700 }}>
+                ₹{targetIncome.toLocaleString('en-IN')} / day
+              </span>
             </div>
-            <h4 style={{ fontSize: '0.94rem', fontWeight: 600, color: '#FFFFFF', marginBottom: 5 }}>
-              Actionable 7-Day Roadmap
-            </h4>
-            <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
-              A day-by-day milestone execution plan so you know what onboarding steps to take on Day 1 and when your first rupee clears.
-            </p>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[600, 800, 1200, 1500].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => onSelectTarget(t)}
+                  style={{
+                    flex: 1,
+                    padding: '5px 4px',
+                    borderRadius: 5,
+                    fontSize: '0.72rem',
+                    border: `1px solid ${targetIncome === t ? '#10B981' : '#1E293B'}`,
+                    background: targetIncome === t ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                    color: targetIncome === t ? '#10B981' : '#94A3B8',
+                    fontWeight: targetIncome === t ? 700 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  ₹{t}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Live Scenario Result Strip */}
+        <div
+          style={{
+            marginTop: 18,
+            padding: '12px 16px',
+            borderRadius: 8,
+            background: '#080C14',
+            border: '1px solid #1E293B',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontSize: '0.72rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: 700 }}>
+              Calculated Daily Ceiling:
+            </span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF' }}>
+              ₹{calculation.net.toLocaleString('en-IN')}
+              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 400 }}> take-home</span>
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span
+              style={{
+                fontSize: '0.74rem',
+                color: calculation.feasible ? '#10B981' : '#F59E0B',
+                fontWeight: 600,
+              }}
+            >
+              {calculation.feasible
+                ? `✓ Feasible for ₹${targetIncome.toLocaleString('en-IN')}/day`
+                : `⚠ -₹${calculation.gap.toLocaleString('en-IN')} Gap vs ₹${targetIncome.toLocaleString('en-IN')}`}
+            </span>
+            <a
+              href="#how-it-works"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: '0.74rem',
+                color: '#00F2FE',
+                textDecoration: 'none',
+                fontWeight: 600,
+              }}
+            >
+              Watch engine reason below <ArrowRight size={13} />
+            </a>
           </div>
         </div>
       </div>

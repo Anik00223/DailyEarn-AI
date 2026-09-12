@@ -4,61 +4,68 @@
 
 :root {
   /* Backgrounds - Refined Graphite & Charcoal */
-  --bg-base:         #0B0F14;
-  --bg-surface:      #111720;
-  --bg-surface-hover:#161F2B;
-  --bg-elevated:     #17202A;
-  --bg-subtle:       #1E2736;
+  --bg-base: #0B0F14;
+  --bg-surface: #111720;
+  --bg-surface-hover: #161F2B;
+  --bg-elevated: #17202A;
+  --bg-subtle: #1E2736;
 
   /* Borders */
-  --border-subtle:   #1E293B;
-  --border-muted:    rgba(255, 255, 255, 0.08);
-  --border-hover:    #334155;
-  --border-focus:    #0284C7;
+  --border-subtle: #1E293B;
+  --border-muted: rgba(255, 255, 255, 0.08);
+  --border-hover: #334155;
+  --border-focus: #0284C7;
 
   /* Brand Accent - Restrained Sophisticated Cyan / Teal */
-  --accent:          #00B4D8;
-  --accent-hover:    #0096C7;
-  --accent-muted:    rgba(0, 180, 216, 0.12);
-  --accent-border:   rgba(0, 180, 216, 0.25);
+  --accent: #00B4D8;
+  --accent-hover: #0096C7;
+  --accent-muted: rgba(0, 180, 216, 0.12);
+  --accent-border: rgba(0, 180, 216, 0.25);
 
   /* Typography Colors */
-  --text-primary:    #F8FAFC;
-  --text-secondary:  #94A3B8;
-  --text-muted:      #64748B;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
 
   /* Status Colors */
-  --danger:          #EF4444;
-  --danger-bg:       rgba(239, 68, 68, 0.10);
-  --warning:         #F59E0B;
-  --warning-bg:      rgba(245, 158, 11, 0.10);
-  --success:         #10B981;
-  --success-bg:      rgba(16, 185, 129, 0.10);
+  --danger: #EF4444;
+  --danger-bg: rgba(239, 68, 68, 0.10);
+  --warning: #F59E0B;
+  --warning-bg: rgba(245, 158, 11, 0.10);
+  --success: #10B981;
+  --success-bg: rgba(16, 185, 129, 0.10);
 
   /* Typography - Clean Modern Sans */
-  --font-sans:       'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display:    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-body:       'Plus Jakarta Sans', sans-serif;
-  --font-label:      'Plus Jakarta Sans', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --font-label: 'Plus Jakarta Sans', sans-serif;
 
   /* Radii */
-  --radius-xs:       4px;
-  --radius-sm:       6px;
-  --radius-md:       10px;
-  --radius-lg:       14px;
-  --radius-pill:     9999px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 9999px;
 
   /* Shadows - Natural & Soft */
-  --shadow-sm:       0 1px 2px rgba(0, 0, 0, 0.25);
-  --shadow-md:       0 4px 16px rgba(0, 0, 0, 0.35);
-  --shadow-lg:       0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
 
   /* Transitions */
-  --ease-smooth:     cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: auto; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: auto;
+}
 
 body {
   background: var(--bg-base);
@@ -72,10 +79,22 @@ body {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-base); }
-::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #334155; }
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
 
 /* Selection */
 ::selection {
@@ -100,7 +119,9 @@ button {
 }
 
 /* Input base */
-input, textarea, select {
+input,
+textarea,
+select {
   font-family: var(--font-body);
   color: var(--text-primary);
   background: var(--bg-surface);
@@ -111,13 +132,16 @@ input, textarea, select {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   border-color: var(--accent);
   outline: none;
   box-shadow: 0 0 0 2px var(--accent-muted);
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--text-muted);
 }
 
@@ -246,9 +270,11 @@ a:hover {
   0% {
     transform: translate3d(0, 0, 0);
   }
+
   50% {
     transform: translate3d(-12px, -8px, 0);
   }
+
   100% {
     transform: translate3d(0, 0, 0);
   }
@@ -265,6 +291,7 @@ a:hover {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -290,20 +317,23 @@ a:hover {
 
 /* Skeleton loader */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--bg-surface) 25%,
-    var(--bg-subtle) 50%,
-    var(--bg-surface) 75%
-  );
+  background: linear-gradient(90deg,
+      var(--bg-surface) 25%,
+      var(--bg-subtle) 50%,
+      var(--bg-surface) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 /* Hero Secondary Micro-Animation: Subtle animated underline marker */
@@ -331,6 +361,7 @@ a:hover {
     transform: scaleX(0);
     opacity: 0;
   }
+
   100% {
     transform: scaleX(1);
     opacity: 0.9;
@@ -343,10 +374,13 @@ a:hover {
 }
 
 @keyframes pulseDot {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.35;
     transform: scale(0.95);
   }
+
   50% {
     opacity: 0.7;
     transform: scale(1.05);
@@ -362,6 +396,7 @@ a:hover {
     transform: translateY(-1px);
     border-color: var(--accent);
   }
+
   100% {
     transform: translateY(0);
   }
@@ -370,8 +405,8 @@ a:hover {
 /* Opportunity Card Hover Micro-Interactions */
 .opportunity-benchmark-card {
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.2s ease;
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s ease;
 }
 
 .opportunity-benchmark-card:hover {
@@ -422,9 +457,11 @@ a:hover {
   0% {
     transform: translate(-55%, -50%) scale(0.96);
   }
+
   50% {
     transform: translate(-45%, -50%) scale(1.04);
   }
+
   100% {
     transform: translate(-55%, -50%) scale(0.96);
   }
@@ -435,19 +472,67 @@ a:hover {
   will-change: transform;
 }
 
+/* DailyEarn Cockpit Animations & Micro-Interactions */
+@keyframes mapRipple {
+  0% {
+    r: 6;
+    opacity: 0.9;
+  }
+  100% {
+    r: 22;
+    opacity: 0;
+  }
+}
+
+.map-node-ripple {
+  animation: mapRipple 2.2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+  transform-origin: center;
+}
+
+@keyframes signalStreamDash {
+  to {
+    stroke-dashoffset: -30;
+  }
+}
+
+.signal-stream-path {
+  animation: signalStreamDash 1.6s linear infinite;
+}
+
+.cockpit-panel,
+.cockpit-glass-panel {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease,
+              box-shadow 0.2s ease;
+}
+
+.cockpit-panel:hover,
+.cockpit-glass-panel:hover {
+  transform: translateY(-1px);
+  border-color: #334155;
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.75);
+}
+
 /* Global Respect for Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
+
+  *,
+  ::before,
+  ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
   .ambient-grid,
   .cta-ambient-drift,
-  .pulse-dot {
+  .pulse-dot,
+  .map-node-ripple,
+  .signal-stream-path {
     animation: none !important;
   }
+
   .hero-underline-marker {
     animation: none !important;
     transform: scaleX(1) !important;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate';
-import { loginLimiter, registerLimiter } from '../../middleware/rateLimiter';
+import { loginLimiter, registerLimiter, refreshLimiter } from '../../middleware/rateLimiter';
 import { sanitizeMiddleware } from '../../middleware/sanitize';
 import { validate } from '../../middleware/validate';
 import { registerSchema, loginSchema } from './auth.schema';
@@ -32,7 +32,7 @@ router.post(
 
 router.post('/logout', logoutController);
 
-router.post('/refresh', refreshController);
+router.post('/refresh', refreshLimiter, refreshController);
 
 router.get('/me', authenticate, getMeController);
 
