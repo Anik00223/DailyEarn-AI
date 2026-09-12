@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { env, isGroqConfigured } from './env';
+import { env, isGroqConfigured, getGroqApiKey } from './env';
 
 export type GroqErrorType =
   | 'unconfigured'
@@ -225,7 +225,7 @@ async function executeGroqRequest(
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${env.GROQ_API_KEY}`,
+          Authorization: `Bearer ${getGroqApiKey()}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

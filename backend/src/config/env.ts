@@ -80,9 +80,19 @@ if (!parsed.success) {
 
 export const env: Env = parsed.data;
 
+export function getGroqApiKey(): string {
+  const key =
+    process.env.GROQ_API_KEY ||
+    process.env.GROQ_KEY ||
+    process.env.GROQ_API_TOKEN ||
+    env?.GROQ_API_KEY ||
+    '';
+  return key.trim().replace(/^['"]|['"]$/g, '');
+}
+
 export function isGroqConfigured(): boolean {
-  const key = env.GROQ_API_KEY;
-  if (!key || key.trim() === '') return false;
+  const key = getGroqApiKey();
+  if (!key) return false;
   if (
     key.includes('placeholder') ||
     key.includes('your_groq_api_key') ||
@@ -94,9 +104,19 @@ export function isGroqConfigured(): boolean {
   return key.startsWith('gsk_') || key.length >= 20;
 }
 
+export function getNvidiaApiKey(): string {
+  const key =
+    process.env.NVIDIA_API_KEY ||
+    process.env.NVIDIA_KEY ||
+    process.env.NVIDIA_API_TOKEN ||
+    env?.NVIDIA_API_KEY ||
+    '';
+  return key.trim().replace(/^['"]|['"]$/g, '');
+}
+
 export function isNvidiaConfigured(): boolean {
-  const key = env.NVIDIA_API_KEY;
-  if (!key || key.trim() === '') return false;
+  const key = getNvidiaApiKey();
+  if (!key) return false;
   if (
     key.includes('placeholder') ||
     key.includes('your_nvidia_api_key') ||

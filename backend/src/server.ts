@@ -4,7 +4,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { env } from './config/env';
+import { env, isGroqConfigured, isNvidiaConfigured, getGroqApiKey, getNvidiaApiKey } from './config/env';
 import { requestIdMiddleware } from './middleware/requestId';
 import { globalLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
@@ -287,6 +287,15 @@ app.get('/api/monitor', (_req: Request, res: Response) => {
     pool: getPoolStats(),
     groq: getGroqMetrics(),
     nvidia: getNvidiaMetrics(),
+    aiConfig: {
+      groqConfigured: isGroqConfigured(),
+      nvidiaConfigured: isNvidiaConfigured(),
+      nvidiaKeyLength: getNvidiaApiKey().length,
+      groqKeyLength: getGroqApiKey().length,
+      envKeys: Object.keys(process.env).filter((k) =>
+        k.includes('API') || k.includes('GROQ') || k.includes('NVIDIA') || k.includes('KEY')
+      ),
+    },
   });
 });
 

@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { env, isNvidiaConfigured } from './env';
+import { env, isNvidiaConfigured, getNvidiaApiKey } from './env';
 
 export type NvidiaErrorType =
   | 'unconfigured'
@@ -259,7 +259,7 @@ async function executeNvidiaRequest(
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${env.NVIDIA_API_KEY}`,
+          Authorization: `Bearer ${getNvidiaApiKey()}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
