@@ -17,6 +17,7 @@ import { seedOpportunities } from './db/seeds/seed';
 import { connectRedis, disconnectRedis, isRedisAvailable } from './config/redis';
 import { testDatabaseConnection, getDbPool, getPoolStats } from './config/database';
 import { getGroqMetrics } from './config/groq';
+import { getNvidiaMetrics } from './config/nvidia';
 import { initializeWorker } from './queues/workers/ideaWorker';
 import { monitor } from './utils/monitor';
 import { db } from './db';
@@ -256,6 +257,7 @@ app.get(['/api/health', '/health'], async (_req: Request, res: Response) => {
   const redisOk = isRedisAvailable();
   const poolStats = getPoolStats();
   const groqMetrics = getGroqMetrics();
+  const nvidiaMetrics = getNvidiaMetrics();
 
   const isHealthy = dbOk; // Database is the authoritative critical service
   res.status(isHealthy ? 200 : 503).json({
@@ -266,6 +268,10 @@ app.get(['/api/health', '/health'], async (_req: Request, res: Response) => {
     groq: {
       circuitState: groqMetrics.circuitState,
       failureCount: groqMetrics.failureCount,
+    },
+    nvidia: {
+      circuitState: nvidiaMetrics.circuitState,
+      failureCount: nvidiaMetrics.failureCount,
     },
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -278,6 +284,7 @@ app.get('/api/monitor', (_req: Request, res: Response) => {
     ...monitor(),
     pool: getPoolStats(),
     groq: getGroqMetrics(),
+    nvidia: getNvidiaMetrics(),
   });
 });
 

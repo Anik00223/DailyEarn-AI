@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-import { env, isGroqConfigured } from './env';
+import { env, isNvidiaConfigured } from './env';
 
-export type GroqErrorType =
+export type NvidiaErrorType =
   | 'unconfigured'
   | 'rate_limit'
   | 'invalid_key'
@@ -13,8 +13,8 @@ export type GroqErrorType =
   | 'circuit_breaker_open'
   | 'unknown';
 
-export interface GroqError {
-  type: GroqErrorType;
+export interface NvidiaError {
+  type: NvidiaErrorType;
   message: string;
   retryable: boolean;
 }
@@ -49,7 +49,7 @@ const metrics = {
 // ─── IN-FLIGHT REQUEST COALESCING MAP ───
 const inFlightRequests = new Map<string, Promise<string>>();
 
-export function getGroqMetrics() {
+export function getNvidiaMetrics() {
   return {
     ...metrics,
     circuitState: circuitBreaker.state,
@@ -58,7 +58,7 @@ export function getGroqMetrics() {
   };
 }
 
-export function resetCircuitBreaker(): void {
+export function resetNvidiaCircuitBreaker(): void {
   circuitBreaker.state = 'CLOSED';
   circuitBreaker.failureCount = 0;
   circuitBreaker.lastFailureTime = 0;
@@ -72,7 +72,11 @@ export function maskSecretInText(text: string): string {
     .replace(/nvapi-[a-zA-Z0-9_-]{10,}/g, 'nvapi-***');
 }
 
-export function classifyError(error: unknown, status?: number, errorDetail?: string): GroqError {
+export function classifyNvidiaError(
+  error: unknown,
+  status?: number,
+  errorDetail?: string
+): NvidiaError {
   const rawMessage = error instanceof Error ? error.message : String(error);
   const message = maskSecretInText(rawMessage);
   const lowerMessage = message.toLowerCase();
@@ -81,14 +85,14 @@ export function classifyError(error: unknown, status?: number, errorDetail?: str
   if (lowerMessage.includes('circuit breaker is open')) {
     return {
       type: 'circuit_breaker_open',
-      message: 'Groq AI circuit breaker is active (temporarily failing fast due to provider errors)',
+      message: 'NVIDIA AI circuit breaker is active (temporarily failing fast due to provider errors)',
       retryable: false,
     };
   }
   if (lowerMessage.includes('unconfigured') || lowerMessage.includes('placeholder')) {
     return {
       type: 'unconfigured',
-      message: 'Groq API is not configured or contains placeholder credentials',
+      message: 'NVIDIA API is not configured or contains placeholder credentials',
       retryable: false,
     };
   }
@@ -97,67 +101,96 @@ export function classifyError(error: unknown, status?: number, errorDetail?: str
     status === 403 ||
     lowerMessage.includes('api key') ||
     lowerDetail.includes('invalid api key') ||
-    lowerDetail.includes('unauthorized')
+    lowerDetail.includes('unauthorized') ||
+    lowerDetail.includes('forbidden')
   ) {
     return {
       type: 'invalid_key',
-      message: 'Groq API authentication failed. Verify GROQ_API_KEY in environment.',
-      retryable: false,
-    };
-  }
-  if (status === 404 || lowerDetail.includes('model') || lowerMessage.includes('model not found')) {
-    return {
-      type: 'model_error',
-      message: `Configured Groq model (${env.GROQ_MODEL}) is not available or not found`,
+      message: 'NVIDIA API authentication failed (invalid or missing API key)',
       retryable: false,
     };
   }
   if (
     status === 429 ||
-    lowerMessage.includes('429') ||
     lowerMessage.includes('rate limit') ||
-    lowerDetail.includes('rate limit')
+    lowerMessage.includes('quota') ||
+    lowerDetail.includes('too many requests')
   ) {
-    return { type: 'rate_limit', message: 'Groq API rate limit exceeded', retryable: true };
+    return {
+      type: 'rate_limit',
+      message: 'NVIDIA API rate limit or quota exceeded',
+      retryable: true,
+    };
+  }
+  if (
+    status === 408 ||
+    status === 504 ||
+    lowerMessage.includes('timeout') ||
+    lowerMessage.includes('abort') ||
+    lowerDetail.includes('timed out')
+  ) {
+    return {
+      type: 'timeout',
+      message: 'NVIDIA API request timed out',
+      retryable: true,
+    };
+  }
+  if (status === 404 || lowerDetail.includes('not found') || lowerDetail.includes('model')) {
+    return {
+      type: 'model_error',
+      message: `NVIDIA model ${env.NVIDIA_MODEL} is unavailable or not found`,
+      retryable: false,
+    };
+  }
+  if (
+    lowerMessage.includes('validation') ||
+    lowerMessage.includes('schema') ||
+    lowerDetail.includes('validation')
+  ) {
+    return {
+      type: 'validation_failed',
+      message: 'NVIDIA response failed validation schema',
+      retryable: false,
+    };
   }
   if (status === 400 || lowerDetail.includes('bad request')) {
     return {
       type: 'bad_request',
-      message: `Groq API bad request: ${maskSecretInText(errorDetail || message)}`,
+      message: 'Invalid request payload sent to NVIDIA API',
       retryable: false,
     };
   }
-  if (lowerMessage.includes('validation failed') || lowerMessage.includes('json parse')) {
-    return { type: 'validation_failed', message: 'AI response failed schema validation', retryable: true };
-  }
-  if (lowerMessage.includes('timeout') || lowerMessage.includes('deadline') || lowerMessage.includes('aborted')) {
-    return { type: 'timeout', message: 'Groq API request timed out', retryable: true };
-  }
   if (
-    lowerMessage.includes('fetch failed') ||
     lowerMessage.includes('econnrefused') ||
-    lowerMessage.includes('enotfound')
+    lowerMessage.includes('enotfound') ||
+    lowerMessage.includes('network')
   ) {
-    return { type: 'network_error', message: 'Network connection to api.groq.com failed', retryable: true };
+    return {
+      type: 'network_error',
+      message: 'Network error connecting to NVIDIA API endpoint',
+      retryable: true,
+    };
   }
-  if (status && status >= 500) {
-    return { type: 'model_error', message: `Groq upstream server error (${status})`, retryable: true };
-  }
-  return { type: 'unknown', message: errorDetail || message, retryable: false };
+
+  return {
+    type: 'unknown',
+    message: message || 'An unexpected error occurred during NVIDIA AI call',
+    retryable: true,
+  };
 }
 
-async function sleep(ms: number): Promise<void> {
+function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function checkCircuitState(): void {
   const now = Date.now();
   if (circuitBreaker.state === 'OPEN') {
-    if (now - circuitBreaker.lastFailureTime > env.CIRCUIT_BREAKER_RESET_TIMEOUT_MS) {
+    if (now - circuitBreaker.lastFailureTime > env.NVIDIA_CIRCUIT_BREAKER_RESET_TIMEOUT_MS) {
       circuitBreaker.state = 'HALF_OPEN';
-      console.warn('[CircuitBreaker:Groq] Transitioned from OPEN to HALF_OPEN (probing provider recovery)');
+      console.warn('[CircuitBreaker:NVIDIA] Transitioned from OPEN to HALF_OPEN (probing provider recovery)');
     } else {
-      throw new Error('Circuit breaker is open: Groq provider is temporarily suspended due to repeated failures');
+      throw new Error('Circuit breaker is open: NVIDIA provider is temporarily suspended due to repeated failures');
     }
   }
 }
@@ -170,7 +203,7 @@ function recordCircuitSuccess(): void {
       circuitBreaker.state = 'CLOSED';
       circuitBreaker.failureCount = 0;
       circuitBreaker.consecutiveSuccesses = 0;
-      console.log('✅ [CircuitBreaker:Groq] Provider verified healthy — circuit closed');
+      console.log('✅ [CircuitBreaker:NVIDIA] Provider verified healthy — circuit closed');
     }
   } else if (circuitBreaker.state === 'CLOSED') {
     circuitBreaker.failureCount = 0;
@@ -185,36 +218,36 @@ function recordCircuitFailure(): void {
 
   if (
     circuitBreaker.state === 'CLOSED' &&
-    circuitBreaker.failureCount >= env.CIRCUIT_BREAKER_FAIL_THRESHOLD
+    circuitBreaker.failureCount >= env.NVIDIA_CIRCUIT_BREAKER_FAIL_THRESHOLD
   ) {
     circuitBreaker.state = 'OPEN';
     metrics.circuitTripCount++;
     console.warn(
-      `🚨 [CircuitBreaker:Groq] Circuit TRIPPED to OPEN after ${circuitBreaker.failureCount} consecutive failures. Failing fast for ${env.CIRCUIT_BREAKER_RESET_TIMEOUT_MS}ms.`
+      `🚨 [CircuitBreaker:NVIDIA] Circuit TRIPPED to OPEN after ${circuitBreaker.failureCount} consecutive failures. Failing fast for ${env.NVIDIA_CIRCUIT_BREAKER_RESET_TIMEOUT_MS}ms.`
     );
   } else if (circuitBreaker.state === 'HALF_OPEN') {
     circuitBreaker.state = 'OPEN';
-    console.warn('🚨 [CircuitBreaker:Groq] Probe failed in HALF_OPEN — circuit reopened');
+    console.warn('🚨 [CircuitBreaker:NVIDIA] Probe failed in HALF_OPEN — circuit reopened');
   }
 }
 
 /**
- * Executes raw network request to Groq API with bounded timeout and retry protection.
+ * Executes raw network request to NVIDIA API with bounded timeout and retry protection.
  */
-async function executeGroqRequest(
+async function executeNvidiaRequest(
   prompt: string,
   validator?: (text: string) => boolean
 ): Promise<string> {
   metrics.totalRequests++;
   checkCircuitState();
 
-  if (!isGroqConfigured()) {
-    throw new Error('Groq API error (unconfigured): GROQ_API_KEY is not configured or contains placeholder text');
+  if (!isNvidiaConfigured()) {
+    throw new Error('NVIDIA API error (unconfigured): NVIDIA_API_KEY is not configured or contains placeholder text');
   }
 
-  const maxAttempts = 2; // Bounded retries: max 2 attempts only
+  const maxAttempts = 2;
   const baseDelay = 1000;
-  const timeoutMs = env.GROQ_TIMEOUT_MS; // Bounded 8s default timeout
+  const timeoutMs = env.NVIDIA_TIMEOUT_MS;
   const startTime = Date.now();
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -222,17 +255,18 @@ async function executeGroqRequest(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const endpoint = `${env.NVIDIA_BASE_URL}/chat/completions`;
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${env.GROQ_API_KEY}`,
+          Authorization: `Bearer ${env.NVIDIA_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: env.GROQ_MODEL,
+          model: env.NVIDIA_MODEL,
           messages: [{ role: 'user', content: prompt }],
-          temperature: 0.85,
-          response_format: { type: 'json_object' },
+          temperature: 0.5,
+          max_tokens: 256,
         }),
         signal: controller.signal,
       });
@@ -244,7 +278,7 @@ async function executeGroqRequest(
         try {
           const errText = await response.text();
           const parsed = JSON.parse(errText);
-          safeDetail = parsed.error?.message || '';
+          safeDetail = parsed.error?.message || parsed.detail || '';
         } catch {
           // ignore parsing error
         }
@@ -260,7 +294,7 @@ async function executeGroqRequest(
       const text = responseData.choices?.[0]?.message?.content;
 
       if (!text || text.trim().length === 0) {
-        throw new Error('Empty response from Groq');
+        throw new Error('Empty response from NVIDIA API');
       }
 
       if (validator && !validator(text)) {
@@ -279,16 +313,15 @@ async function executeGroqRequest(
         detail = match[2];
       }
 
-      const classified = classifyError(error, status, detail);
+      const classified = classifyNvidiaError(error, status, detail);
 
       console.warn(
-        `[Groq] Attempt ${attempt}/${maxAttempts} failed: ${classified.type} - ${classified.message}`
+        `[NVIDIA] Attempt ${attempt}/${maxAttempts} failed: ${classified.type} - ${classified.message}`
       );
 
-      // Non-retryable errors (e.g. invalid key, model error, bad request) fail immediately
       if (!classified.retryable || attempt === maxAttempts) {
         recordCircuitFailure();
-        throw new Error(`Groq API error (${classified.type}): ${classified.message}`);
+        throw new Error(`NVIDIA API error (${classified.type}): ${classified.message}`);
       }
 
       const delay = baseDelay * Math.pow(2, attempt - 1);
@@ -297,27 +330,25 @@ async function executeGroqRequest(
   }
 
   recordCircuitFailure();
-  throw new Error('Groq API: all retry attempts exhausted');
+  throw new Error('NVIDIA API: all retry attempts exhausted');
 }
 
 /**
- * Public generateContent method with request coalescing/deduplication.
- * Identical concurrent requests share the exact same pending in-flight promise.
+ * Public generateNvidiaContent method with request coalescing/deduplication.
  */
-export async function generateContent(
+export async function generateNvidiaContent(
   prompt: string,
   validator?: (text: string) => boolean
 ): Promise<string> {
   const promptHash = crypto.createHash('sha256').update(prompt.trim()).digest('hex');
 
-  // Request Coalescing / Deduplication
   const existingPromise = inFlightRequests.get(promptHash);
   if (existingPromise) {
     metrics.coalescedRequests++;
     return existingPromise;
   }
 
-  const promise = executeGroqRequest(prompt, validator).finally(() => {
+  const promise = executeNvidiaRequest(prompt, validator).finally(() => {
     inFlightRequests.delete(promptHash);
   });
 

@@ -47,6 +47,22 @@ const envSchema = z.object({
   GROQ_TIMEOUT_MS: z.string().default('8000').transform(Number),
   CIRCUIT_BREAKER_FAIL_THRESHOLD: z.string().default('5').transform(Number),
   CIRCUIT_BREAKER_RESET_TIMEOUT_MS: z.string().default('30000').transform(Number),
+  // NVIDIA Secondary AI Provider
+  NVIDIA_API_KEY: z
+    .string()
+    .default('')
+    .transform((val) => (val ? val.trim().replace(/^['"]|['"]$/g, '') : '')),
+  NVIDIA_MODEL: z
+    .string()
+    .default('meta/llama-3.2-11b-vision-instruct')
+    .transform((val) => val.trim().replace(/^['"]|['"]$/g, '')),
+  NVIDIA_BASE_URL: z
+    .string()
+    .default('https://integrate.api.nvidia.com/v1')
+    .transform((val) => val.trim().replace(/\/+$/, '')),
+  NVIDIA_TIMEOUT_MS: z.string().default('20000').transform(Number),
+  NVIDIA_CIRCUIT_BREAKER_FAIL_THRESHOLD: z.string().default('5').transform(Number),
+  NVIDIA_CIRCUIT_BREAKER_RESET_TIMEOUT_MS: z.string().default('30000').transform(Number),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -76,5 +92,19 @@ export function isGroqConfigured(): boolean {
     return false;
   }
   return key.startsWith('gsk_') || key.length >= 20;
+}
+
+export function isNvidiaConfigured(): boolean {
+  const key = env.NVIDIA_API_KEY;
+  if (!key || key.trim() === '') return false;
+  if (
+    key.includes('placeholder') ||
+    key.includes('your_nvidia_api_key') ||
+    key.includes('your_') ||
+    key === 'nvapi_placeholder_for_render_fallback'
+  ) {
+    return false;
+  }
+  return key.startsWith('nvapi-') || key.length >= 20;
 }
 

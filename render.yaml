@@ -36,6 +36,12 @@ services:
         sync: false
       - key: GROQ_MODEL
         value: qwen/qwen3.8-27b
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NVIDIA_MODEL
+        value: meta/llama-3.2-11b-vision-instruct
+      - key: NVIDIA_TIMEOUT_MS
+        value: "20000"
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET

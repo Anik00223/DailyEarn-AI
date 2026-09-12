@@ -6,7 +6,7 @@ import { buildIdeaPrompt, generateIdeaHash } from './ideas.prompt';
 import { geminiResponseSchema } from './ideas.schema';
 import type { GenerateIdeasInput, GeminiIdea } from './ideas.schema';
 import { ideaQueue } from '../../queues/ideaGeneration.queue';
-import { generateContent } from '../../config/groq';
+import { orchestrateAiRequest } from '../../services/aiOrchestrator';
 import { redisGet, redisSet } from '../../config/redis';
 
 const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6 hours
@@ -65,9 +65,13 @@ export async function generateIdeas(
       queueError instanceof Error ? queueError.message : queueError
     );
     try {
-      rawResponse = await generateContent(prompt);
-    } catch (groqError) {
-      const message = groqError instanceof Error ? groqError.message : 'Unknown error';
+      const orchestration = await orchestrateAiRequest(prompt);
+      if (!orchestration.content) {
+        throw new Error(`AI generation failed on all providers (${orchestration.reason})`);
+      }
+      rawResponse = orchestration.content;
+    } catch (aiError) {
+      const message = aiError instanceof Error ? aiError.message : 'Unknown error';
       throw createError(502, 'IDEA_GENERATION_FAILED', `AI generation failed: ${message}`);
     }
   }

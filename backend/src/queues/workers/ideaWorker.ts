@@ -1,5 +1,5 @@
 import { ideaQueue } from '../ideaGeneration.queue';
-import { generateContent } from '../../config/groq';
+import { orchestrateAiRequest } from '../../services/aiOrchestrator';
 import { geminiResponseSchema } from '../../modules/ideas/ideas.schema';
 
 interface IdeaJobData {
@@ -35,10 +35,13 @@ ideaQueue.process(async (job): Promise<IdeaJobResult> => {
       }
     };
 
-    const rawResponse = await generateContent(data.prompt, validateJSON);
+    const orchestration = await orchestrateAiRequest(data.prompt, validateJSON);
+    if (!orchestration.content) {
+      throw new Error(`AI generation failed across providers (${orchestration.reason})`);
+    }
 
     return {
-      rawResponse,
+      rawResponse: orchestration.content,
       userId: data.userId,
     };
   } catch (error) {
