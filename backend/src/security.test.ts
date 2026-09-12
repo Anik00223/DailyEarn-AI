@@ -42,6 +42,7 @@ describe('Production Engineering & Security Defense Suite', () => {
 
     it('should allow explicitly configured production origins', () => {
       expect(isOriginAllowed('https://dailyearn-frontend.onrender.com')).toBe(true);
+      expect(isOriginAllowed('https://dailyearn-ai-2.onrender.com')).toBe(true);
     });
 
     it('should strictly reject malicious cross-origin domains', () => {

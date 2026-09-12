@@ -100,9 +100,15 @@ const configuredOrigins = env.CORS_ORIGIN.split(',')
   .map((o) => o.trim())
   .filter((o) => o && o !== '*');
 
-const defaultProductionOrigin = 'https://dailyearn-frontend.onrender.com';
-if (!configuredOrigins.includes(defaultProductionOrigin)) {
-  configuredOrigins.push(defaultProductionOrigin);
+const defaultProductionOrigins = [
+  'https://dailyearn-frontend.onrender.com',
+  'https://dailyearn-ai-2.onrender.com',
+  'https://dailyearn-ai-1.onrender.com',
+];
+for (const origin of defaultProductionOrigins) {
+  if (!configuredOrigins.includes(origin)) {
+    configuredOrigins.push(origin);
+  }
 }
 
 export const isOriginAllowed = (origin?: string): boolean => {
@@ -112,7 +118,14 @@ export const isOriginAllowed = (origin?: string): boolean => {
       return true;
     }
   }
-  return configuredOrigins.includes(origin);
+  if (configuredOrigins.includes(origin)) {
+    return true;
+  }
+  // Allow official DailyEarn Render domain patterns
+  if (/^https:\/\/dailyearn(-[a-z0-9]+)*\.onrender\.com$/.test(origin)) {
+    return true;
+  }
+  return false;
 };
 
 // ─── SECURITY HEADERS (HELMET) ───
@@ -127,6 +140,7 @@ app.use(
         connectSrc: [
           "'self'",
           ...configuredOrigins,
+          'https://*.onrender.com',
           ...(env.NODE_ENV !== 'production'
             ? ['http://localhost:*', 'http://127.0.0.1:*', 'ws://localhost:*', 'ws://127.0.0.1:*']
             : []),
@@ -151,7 +165,8 @@ const corsOptions: cors.CorsOptions = {
     if (isOriginAllowed(origin)) {
       return callback(null, true);
     }
-    callback(new Error(`CORS error: Origin ${origin} not allowed`));
+    // Reject by omitting access-control headers without throwing unhandled server error
+    callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

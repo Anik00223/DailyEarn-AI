@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { validate } from '../../middleware/validate';
+import { validateQuery } from '../../middleware/validate';
 import { locationLimiter } from '../../middleware/rateLimiter';
 import { searchLocations } from './locations.service';
 import { success } from '../../utils/apiResponse';
@@ -8,15 +8,13 @@ import { success } from '../../utils/apiResponse';
 const router = Router();
 
 const searchSchema = z.object({
-  query: z.object({
-    q: z.string().min(2, 'Query must be at least 2 characters').max(100),
-  }),
+  q: z.string().min(2, 'Query must be at least 2 characters').max(100),
 });
 
 router.get(
   '/search',
   locationLimiter,
-  validate(searchSchema),
+  validateQuery(searchSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const q = req.query.q as string;
