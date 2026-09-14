@@ -1,0 +1,761 @@
+/* ==========================================================================
+   DailyEarn AI — "Hyper-Local Income Intelligence"
+   Cinematic design system: semantic signal tokens + motion primitives.
+
+   Principles encoded here:
+   - Colour carries MEANING (see --sig-* semantics below), never decoration.
+   - Surfaces are solid graphite with tonal layering. No glassmorphism.
+   - All decorative animation is transform/opacity only (compositor friendly).
+   - Nothing depends on JS to be READABLE: JS only enables the layered mode.
+   ========================================================================== */
+
+.cine-film {
+  /* ── BASE: near-black / graphite / midnight ───────────────────────────── */
+  --ink-000: #04060a;
+  --ink-100: #070a0f;
+  --ink-200: #0a0e14;
+  --ink-300: #0e141b;
+  --ink-400: #131b24;
+  --ink-500: #1a2430;
+
+  /* hairlines + structure */
+  --hair-1: rgba(255, 255, 255, 0.06);
+  --hair-2: rgba(255, 255, 255, 0.11);
+  --hair-3: rgba(255, 255, 255, 0.18);
+
+  /* ── SEMANTIC SIGNALS ─────────────────────────────────────────────────── */
+  /* CYAN   → live intelligence, active state, income, primary signals       */
+  --sig-cyan: #2ee6d6;
+  --sig-cyan-glow: rgba(46, 230, 214, 0.22);
+  --sig-cyan-wash: rgba(46, 230, 214, 0.09);
+
+  /* VIOLET → AI insight, prediction, opportunity discovery, clusters        */
+  --sig-violet: #8b7cf6;
+  --sig-violet-glow: rgba(139, 124, 246, 0.22);
+  --sig-violet-wash: rgba(139, 124, 246, 0.09);
+
+  /* MINT   → feasible, verified, positive, completed action                 */
+  --sig-mint: #3ddc97;
+  --sig-mint-glow: rgba(61, 220, 151, 0.22);
+  --sig-mint-wash: rgba(61, 220, 151, 0.09);
+
+  /* AMBER  → target gap, attention, upside, decision needed                 */
+  --sig-amber: #f5b23c;
+  --sig-amber-glow: rgba(245, 178, 60, 0.22);
+  --sig-amber-wash: rgba(245, 178, 60, 0.09);
+
+  /* CORAL  → costs, deductions, risk, warning                               */
+  --sig-coral: #ff6b5e;
+  --sig-coral-glow: rgba(255, 107, 94, 0.22);
+  --sig-coral-wash: rgba(255, 107, 94, 0.09);
+
+  /* BLUE   → geography, regional context, secondary analytics               */
+  --sig-blue: #4a90d9;
+  --sig-blue-glow: rgba(74, 144, 217, 0.2);
+  --sig-blue-wash: rgba(74, 144, 217, 0.08);
+
+  /* text */
+  --cine-text: #eef3f8;
+  --cine-text-2: #9aa8b8;
+  --cine-text-3: #64717f;
+
+  /* motion vocabulary — long, smooth, editorial. No bounce. */
+  --cine-instrument: cubic-bezier(0.16, 1, 0.3, 1);
+  --cine-scene: cubic-bezier(0.4, 0, 0.2, 1);
+
+  position: relative;
+  background: var(--ink-000);
+  color: var(--cine-text);
+  overflow-x: clip;
+}
+
+/* ─ ATMOSPHERE (background layer) ──────────────────────────────────────── */
+.cine-atmos {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.cine-grain {
+  position: absolute;
+  inset: -50%;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  will-change: transform;
+  animation: cine-grain-drift 42s linear infinite;
+}
+
+@keyframes cine-grain-drift {
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-2%, -1.5%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+.cine-light {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(28px);
+  will-change: transform, opacity;
+}
+
+.cine-light--a { animation: cine-breathe-a 34s ease-in-out infinite; }
+.cine-light--b { animation: cine-breathe-b 46s ease-in-out infinite; }
+.cine-light--c { animation: cine-breathe-c 58s ease-in-out infinite; }
+
+@keyframes cine-breathe-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.85; }
+  50% { transform: translate3d(3%, 4%, 0) scale(1.12); opacity: 1; }
+}
+@keyframes cine-breathe-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.06); opacity: 0.9; }
+  50% { transform: translate3d(-4%, 3%, 0) scale(1); opacity: 0.72; }
+}
+@keyframes cine-breathe-c {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(0.96); opacity: 0.7; }
+  50% { transform: translate3d(2%, -5%, 0) scale(1.14); opacity: 0.95; }
+}
+
+/* ── OVERSIZED TYPOGRAPHY AS A MOTION OBJECT ────────────────────────────── */
+.cine-type {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.86;
+  text-transform: uppercase;
+  color: var(--cine-text);
+  margin: 0;
+}
+
+.cine-type--hero { font-size: clamp(3.2rem, 12.5vw, 11rem); }
+.cine-type--display { font-size: clamp(2.2rem, 7.4vw, 6.2rem); }
+.cine-type--statement {
+  font-size: clamp(1.4rem, 4vw, 3rem);
+  letter-spacing: -0.02em;
+}
+
+.cine-type--outline {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.26);
+}
+
+.cine-type--muted { color: var(--cine-text-3); }
+
+/* each line is its own clip: the reveal is a mask, not a fade */
+.cine-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.04em;
+}
+
+.cine-line > [data-cine-line] {
+  display: block;
+  will-change: transform;
+}
+
+/* ── SURFACES: solid graphite, tonal layering, controlled glow ──────────── */
+.cine-panel {
+  background: linear-gradient(180deg, var(--ink-300) 0%, var(--ink-200) 100%);
+  border: 1px solid var(--hair-1);
+  border-radius: 3px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+  position: relative;
+}
+
+/* a 1px lit top edge — depth through light, not borders everywhere */
+.cine-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--hair-3), transparent);
+}
+
+.cine-panel--accent { border-color: var(--hair-2); }
+
+.cine-label {
+  font-family: var(--font-label);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: var(--cine-text-3);
+}
+
+.cine-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cine-text);
+}
+
+/* semantic value tints — colour communicates meaning */
+.cine-t-cyan { color: var(--sig-cyan); }
+.cine-t-violet { color: var(--sig-violet); }
+.cine-t-mint { color: var(--sig-mint); }
+.cine-t-amber { color: var(--sig-amber); }
+.cine-t-coral { color: var(--sig-coral); }
+.cine-t-blue { color: var(--sig-blue); }
+
+.cine-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+}
+
+/* rule used to separate instrument rows */
+.cine-rule {
+  height: 1px;
+  background: var(--hair-1);
+  border: 0;
+  margin: 0;
+}
+
+/* ─ THE FILM: one pinned stage, GSAP ScrollTrigger scrub (no scroll-jack) ─ */
+.cine-film { position: relative; background: var(--ink-000); }
+
+/* JS-driven mode: stage layers stack inside the pinned frame and the scrub
+   timeline interpolates between them. Without JS — or in reduced-motion /
+   compact viewport mode, flagged with .cine-film--static — layers flow
+   vertically and everything stays readable. */
+.cine-film:not(.cine-film--static) .cine-frame {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.cine-film:not(.cine-film--static) .cine-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  will-change: transform, opacity;
+}
+
+.cine-film--static .cine-layer {
+  position: relative;
+  min-height: 72vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.cine-layer { z-index: 1; }
+.cine-layer--bg { z-index: 0; }
+.cine-layer--fg { z-index: 3; }
+
+/* inner wrapper that holds the actual composition for a layer */
+.cine-frame {
+  position: relative;
+  width: min(1320px, 92vw);
+  margin: 0 auto;
+  height: 100%;
+}
+
+/* ─ STAGE COMPOSITIONS ─────────────────────────────────────────────────── */
+.cine-stage { width: 100%; min-width: 0; }
+.cine-stage--input { display: flex; flex-direction: column; gap: 34px; }
+
+.cine-film__inputgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 26px;
+  align-items: end;
+}
+
+.cine-film__moneygrid,
+.cine-film__pathsgrid,
+.cine-film__actiongrid {
+  display: grid;
+  gap: 26px;
+  align-items: center;
+}
+
+.cine-film__moneygrid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
+.cine-film__pathsgrid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); }
+.cine-film__actiongrid {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 44px;
+}
+
+.cine-paths-col { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.cine-film__gaugehost { display: grid; place-items: center; padding: 26px 18px; }
+
+.cine-paths { display: flex; flex-direction: column; gap: 10px; }
+
+/* oversized supporting copy sitting behind the geography (stage 2) */
+.cine-map__caption {
+  position: absolute;
+  left: 0;
+  bottom: 4%;
+  z-index: 2;
+  pointer-events: none;
+  max-width: 100%;
+}
+
+/* ─ CENTRAL INTELLIGENCE MAP ───────────────────────────────────────────── */
+.cine-map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cine-map__svg {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: visible;
+}
+
+.cine-map__grid-line { stroke: rgba(255, 255, 255, 0.035); stroke-width: 1; }
+.cine-map__outline {
+  fill: rgba(74, 144, 217, 0.06);
+  stroke: var(--sig-blue);
+  stroke-width: 1.4;
+  stroke-opacity: 0.55;
+}
+.cine-map__graticule { stroke: rgba(74, 144, 217, 0.16); stroke-width: 0.8; }
+.cine-map__terrain { fill: url(#cine-terrain); opacity: 0.55; }
+
+.cine-map__path {
+  fill: none;
+  stroke: var(--sig-violet);
+  stroke-width: 1.1;
+  stroke-opacity: 0.5;
+  stroke-dasharray: 5 7;
+  animation: cine-flow 3.4s linear infinite;
+}
+
+@keyframes cine-flow {
+  to { stroke-dashoffset: -48; }
+}
+
+.cine-map__node-ring { fill: none; stroke-width: 1.1; }
+.cine-map__node-core { stroke: none; }
+.cine-map__pulse {
+  fill: none;
+  stroke-width: 1;
+  transform-origin: center;
+  animation: cine-pulse 3.6s ease-out infinite;
+}
+
+@keyframes cine-pulse {
+  0% { transform: scale(0.35); opacity: 0.75; }
+  80% { transform: scale(1.9); opacity: 0; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+.cine-map__node-label {
+  font-family: var(--font-label);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--cine-text-2);
+  pointer-events: none;
+}
+
+.cine-map__node-label--active { fill: var(--cine-text); }
+
+/* hovered / active intel panel reads over the geography */
+.cine-map__intel {
+  position: absolute;
+  width: 244px;
+  padding: 14px 15px 15px;
+  pointer-events: none;
+  transform: translate3d(-50%, -115%, 0);
+}
+
+.cine-map__legend {
+  position: absolute;
+  left: 0;
+  bottom: 6%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  pointer-events: none;
+}
+
+.cine-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-label);
+  font-size: 0.638rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cine-text-3);
+}
+
+/* ─ INTELLIGENT CONTROLS (stage 1) ─────────────────────────────────────── */
+.cine-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  gap: 1px;
+  background: var(--hair-1);
+  border: 1px solid var(--hair-1);
+}
+
+.cine-control {
+  background: var(--ink-200);
+  padding: 15px 16px 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.cine-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cine-chip {
+  font-family: var(--font-label);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 6px 11px;
+  border: 1px solid var(--hair-1);
+  background: var(--ink-300);
+  color: var(--cine-text-2);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: color 0.25s var(--cine-instrument), border-color 0.25s var(--cine-instrument),
+    background 0.25s var(--cine-instrument), transform 0.25s var(--cine-instrument);
+}
+
+.cine-chip:hover { color: var(--cine-text); border-color: var(--hair-3); }
+
+.cine-chip[aria-pressed='true'] {
+  color: var(--ink-000);
+  background: var(--sig-cyan);
+  border-color: var(--sig-cyan);
+  box-shadow: 0 0 0 1px var(--sig-cyan-glow), 0 6px 20px var(--sig-cyan-glow);
+}
+
+.cine-stepper { display: flex; align-items: center; gap: 10px; }
+
+.cine-stepper button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: var(--ink-300);
+  border: 1px solid var(--hair-1);
+  color: var(--cine-text-2);
+  cursor: pointer;
+  border-radius: 2px;
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: color 0.2s var(--cine-instrument), border-color 0.2s var(--cine-instrument);
+}
+
+.cine-stepper button:hover { color: var(--sig-cyan); border-color: var(--sig-cyan-glow); }
+
+/* range input styled as a thin instrument track */
+.cine-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--hair-2);
+  outline: none;
+  cursor: pointer;
+}
+
+.cine-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--sig-cyan);
+  border: 3px solid var(--ink-200);
+  box-shadow: 0 0 0 1px var(--sig-cyan);
+  cursor: grab;
+}
+
+.cine-range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--sig-cyan);
+  border: 3px solid var(--ink-200);
+  cursor: grab;
+}
+
+/*  ANCHOR: the income target ──────────────────────────────────────────── */
+.cine-anchor { display: flex; flex-direction: column; gap: 4px; }
+
+.cine-anchor__value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  font-size: clamp(3.6rem, 14vw, 12rem);
+  line-height: 0.82;
+  font-variant-numeric: tabular-nums;
+  color: var(--cine-text);
+}
+/* ─ MONEY MODEL (stage 3) ──────────────────────────────────────────────── */
+.cine-money { display: flex; flex-direction: column; }
+
+.cine-money__row {
+  display: grid;
+  grid-template-columns: minmax(112px, 1fr) minmax(84px, auto) 128px;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--hair-1);
+}
+
+.cine-money__row:last-child { border-bottom: 0; }
+
+.cine-money__track {
+  height: 3px;
+  background: var(--hair-1);
+  overflow: hidden;
+}
+
+.cine-money__fill {
+  height: 100%;
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.cine-money__label {
+  font-family: var(--font-label);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cine-text-2);
+}
+
+.cine-money__amount {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  letter-spacing: -0.01em;
+}
+
+/* ─ TARGET GAP (stage 3/4) ───────────────────────────────────────────── */
+.cine-gap { display: flex; flex-direction: column; gap: 12px; }
+
+.cine-gap__track {
+  position: relative;
+  height: 30px;
+  background: var(--ink-300);
+  border: 1px solid var(--hair-1);
+  overflow: hidden;
+}
+
+.cine-gap__earned {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--sig-cyan-wash), var(--sig-cyan-glow));
+  border-right: 1px solid var(--sig-cyan);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.cine-gap__target {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--sig-amber);
+  box-shadow: 0 0 12px var(--sig-amber-glow);
+  will-change: transform;
+}
+
+/* ─ FEASIBILITY GAUGE (stage 4) ────────────────────────────────────────── */
+.cine-gauge { position: relative; display: grid; place-items: center; }
+
+.cine-gauge__track { fill: none; stroke: var(--hair-1); }
+
+.cine-gauge__value {
+  fill: none;
+  stroke-linecap: round;
+  will-change: stroke-dashoffset;
+}
+
+.cine-gauge__readout { position: absolute; text-align: center; }
+/* ─ OPPORTUNITY PATHS (stage 4) ────────────────────────────────────────── */
+.cine-path {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 15px;
+  border: 1px solid var(--hair-1);
+  background: var(--ink-200);
+  transition: border-color 0.4s var(--cine-instrument), background 0.4s var(--cine-instrument);
+  will-change: transform, opacity;
+}
+
+.cine-path--leading {
+  border-color: var(--sig-mint-glow);
+  background: linear-gradient(90deg, var(--sig-mint-wash), var(--ink-200) 62%);
+  box-shadow: inset 2px 0 0 var(--sig-mint);
+}
+
+.cine-path__rank {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--cine-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.cine-path--leading .cine-path__rank { color: var(--sig-mint); }
+
+.cine-path__title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--cine-text);
+}
+
+.cine-path__meta {
+  font-family: var(--font-label);
+  font-size: 0.625rem;
+  letter-spacing: 0.09em;
+  color: var(--cine-text-3);
+  text-transform: uppercase;
+}
+
+.cine-path__net {
+  font-family: var(--font-display);
+  font-size: 1.24rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  text-align: right;
+}
+
+/* ─ EXECUTION ROADMAP (stage 5) — structured, not a timer ──────────────── */
+.cine-roadmap {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--hair-1);
+  border: 1px solid var(--hair-1);
+}
+
+.cine-day {
+  background: var(--ink-200);
+  padding: 14px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 178px;
+  will-change: transform, opacity;
+}
+
+.cine-day__index {
+  font-family: var(--font-label);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--cine-text-3);
+}
+
+.cine-day__bar {
+  height: 2px;
+  width: 100%;
+  background: var(--hair-1);
+  position: relative;
+  overflow: hidden;
+}
+
+.cine-day__bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  display: block;
+  will-change: width;
+}
+
+.cine-day__action {
+  font-size: 0.8rem;
+  line-height: 1.42;
+  color: var(--cine-text-2);
+  margin: 0;
+}
+
+/* completed / verified days read as mint */
+.cine-day--done .cine-day__index { color: var(--sig-mint); }
+.cine-day--done .cine-day__bar > i { background: var(--sig-mint); }
+
+/* ─ KPI GADGETS (floating instruments) ─────────────────────────────────── */
+.cine-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cine-kpi__value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-size: clamp(1.5rem, 2.6vw, 2.35rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ─ REDUCED MOTION: no scroll choreography, everything settles in place ── */
+@media (prefers-reduced-motion: reduce) {
+  .cine-atmos > *,
+  .cine-type__word,
+  .cine-surface,
+  .cine-day,
+  .cine-path,
+  .cine-gap__earned,
+  .cine-money__fill {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .cine-film { height: auto !important; }
+  .cine-film .cine-frame { height: auto !important; overflow: visible; }
+  .cine-film .cine-layer {
+    position: relative !important;
+    inset: auto !important;
+    height: auto !important;
+    padding: 96px 0;
+  }
+  .cine-film .cine-layer--bg { display: none !important; }
+  .cine-map__pulse { animation: none !important; opacity: 0.35; }
+}
+
+/* ─ MOBILE: vertical sequence, no horizontal overflow, no tiny UI ──────── */
+@media (max-width: 900px) {
+  .cine-money__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'label amount' 'track track';
+    row-gap: 8px;
+  }
+  .cine-money__label { grid-area: label; }
+  .cine-money__amount { grid-area: amount; }
+  .cine-money__track { grid-area: track; }
+
+  .cine-roadmap { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cine-day { min-height: 150px; }
+}
+
+@media (max-width: 640px) {
+  .cine-controls { grid-template-columns: minmax(0, 1fr); }
+  .cine-roadmap { grid-template-columns: minmax(0, 1fr); }
+  .cine-day { min-height: 0; }
+  .cine-path { grid-template-columns: 26px minmax(0, 1fr); }
+  .cine-path__net { grid-column: 2; text-align: left; }
+}
