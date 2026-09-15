@@ -46,6 +46,13 @@ export function getRedisClient(): RedisClientType {
 
 export async function connectRedis(): Promise<void> {
   if (isConnecting) return;
+  // No valid Redis endpoint configured (e.g. unset in production): stay in
+  // degraded mode without noisy reconnect loops. Never treat localhost as a
+  // production endpoint — it is unreachable on Render and would only burn logs.
+  if (!env.REDIS_URL || (env.NODE_ENV === 'production' && /(localhost|127\.0\.0\.1)/.test(env.REDIS_URL))) {
+    console.warn('⚠️ Redis not configured - running in degraded mode (in-memory rate limiting, PostgreSQL auth fallback)');
+    return;
+  }
   isConnecting = true;
   try {
     const client = getRedisClient();

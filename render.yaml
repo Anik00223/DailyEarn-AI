@@ -17,7 +17,10 @@ services:
           name: dailyearn-db
           property: connectionString
       - key: REDIS_URL
-        value: redis://localhost:6379
+        # Managed Redis URL must be set in the Render Dashboard (Key-Value service).
+        # Intentionally no baked-in value: when unset, the backend runs in
+        # degraded mode (in-memory rate limiting, PostgreSQL auth fallback).
+        sync: false
       - key: MAX_DB_CONNECTIONS
         value: "100"
       - key: RESERVED_CONNECTIONS
