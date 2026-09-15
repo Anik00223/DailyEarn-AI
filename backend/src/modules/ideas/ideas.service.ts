@@ -5,7 +5,7 @@ import { createError } from '../../middleware/errorHandler';
 import { buildIdeaPrompt, generateIdeaHash } from './ideas.prompt';
 import { geminiResponseSchema } from './ideas.schema';
 import type { GenerateIdeasInput, GeminiIdea } from './ideas.schema';
-import { ideaQueue } from '../../queues/ideaGeneration.queue';
+import { getIdeaQueue } from '../../queues/ideaGeneration.queue';
 import { orchestrateAiRequest } from '../../services/aiOrchestrator';
 import { redisGet, redisSet } from '../../config/redis';
 
@@ -53,17 +53,32 @@ export async function generateIdeas(
     count: params.count,
   });
 
-  // 4. Add generation job to Bull Queue (with direct in-memory fallback if Redis is offline)
+  // 4. Queue a generation job when Redis/Bull is up; otherwise generate
+  // in-process (no ioredis clients are ever created in degraded mode).
   let rawResponse: string;
-  try {
-    const job = await ideaQueue.add({ prompt, userId });
-    const result = (await job.finished()) as { rawResponse: string };
-    rawResponse = result.rawResponse;
-  } catch (queueError) {
-    console.warn(
-      '[Ideas] Bull queue execution failed or Redis offline, falling back to direct AI generation:',
-      queueError instanceof Error ? queueError.message : queueError
-    );
+  const ideaQueue = getIdeaQueue();
+  if (ideaQueue) {
+    try {
+      const job = await ideaQueue.add({ prompt, userId });
+      const result = (await job.finished()) as { rawResponse: string };
+      rawResponse = result.rawResponse;
+    } catch (queueError) {
+      console.warn(
+        '[Ideas] Bull queue execution failed, falling back to direct AI generation:',
+        queueError instanceof Error ? queueError.message : queueError
+      );
+      try {
+        const orchestration = await orchestrateAiRequest(prompt);
+        if (!orchestration.content) {
+          throw new Error(`AI generation failed on all providers (${orchestration.reason})`);
+        }
+        rawResponse = orchestration.content;
+      } catch (aiError) {
+        const message = aiError instanceof Error ? aiError.message : 'Unknown error';
+        throw createError(502, 'IDEA_GENERATION_FAILED', `AI generation failed: ${message}`);
+      }
+    }
+  } else {
     try {
       const orchestration = await orchestrateAiRequest(prompt);
       if (!orchestration.content) {

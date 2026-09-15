@@ -85,12 +85,33 @@ process.on('uncaughtException', (error: Error) => {
   }));
 });
 
-process.on('unhandledRejection', (reason: unknown) => {
-  const msg = reason instanceof Error ? reason.message : String(reason);
+process.on('unhandledRejection', (reason: unknown, promise: unknown) => {
+  let msg: string;
+  let stack: string | undefined;
+  if (reason instanceof Error) {
+    msg = reason.message || reason.name || 'Error';
+    stack = reason.stack;
+  } else if (typeof reason === 'string') {
+    msg = reason || '(empty string rejection)';
+  } else if (reason === null || reason === undefined) {
+    msg = `(empty ${reason === null ? 'null' : 'undefined'} rejection)`;
+    try {
+      msg += ` from ${String((promise as Promise<unknown>)?.constructor?.name || 'Promise')}`;
+    } catch {
+      // ignore
+    }
+  } else {
+    try {
+      msg = JSON.stringify(reason);
+    } catch {
+      msg = String(reason);
+    }
+  }
   console.error(JSON.stringify({
     level: 'error',
     type: 'unhandledRejection',
     message: msg,
+    stack,
     timestamp: new Date().toISOString(),
   }));
 });
@@ -210,6 +231,17 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // ─── HEALTH & READINESS PROBES (SEPARATED) ───
+
+// Root: backend serves API only — redirect browsers to the frontend site
+app.get('/', (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    service: 'dailyearn-ai-backend',
+    message: 'DailyEarn AI backend API. Use /health for status or the frontend app for UI.',
+    frontend: 'https://dailyearn-ai-2.onrender.com',
+    health: '/health',
+  });
+});
 
 // 1. Liveness Probe: Fast, lightweight check indicating process is alive (No DB query)
 app.get('/health/liveness', (_req: Request, res: Response) => {
@@ -343,6 +375,8 @@ async function startServer(): Promise<void> {
       }
       if (redisOk) {
         initializeWorker();
+      } else {
+        console.log('ℹ️ Idea worker idle (Redis offline) — generation runs in-process');
       }
 
       // Automatically synchronize PostgreSQL schema on startup if needed
