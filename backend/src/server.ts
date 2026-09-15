@@ -267,10 +267,14 @@ app.get(['/api/health', '/health'], async (_req: Request, res: Response) => {
     redis: redisOk ? 'ok' : 'degraded',
     pool: poolStats,
     groq: {
+      configured: isGroqConfigured(),
+      model: env.GROQ_MODEL,
       circuitState: groqMetrics.circuitState,
       failureCount: groqMetrics.failureCount,
     },
     nvidia: {
+      configured: isNvidiaConfigured(),
+      model: env.NVIDIA_MODEL,
       circuitState: nvidiaMetrics.circuitState,
       failureCount: nvidiaMetrics.failureCount,
     },
