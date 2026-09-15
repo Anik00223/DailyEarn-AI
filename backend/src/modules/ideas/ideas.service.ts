@@ -136,6 +136,9 @@ export async function generateIdeas(
         gettingStartedSteps: idea.getting_started_steps,
         earningsBreakdown: idea.earnings_breakdown,
         citySpecificTip: idea.city_specific_tip,
+        // Location attribution — real user-selected location, never a default
+        city: params.city,
+        state: params.state,
         generationTimestamp,
         ideaHash: hash,
       })

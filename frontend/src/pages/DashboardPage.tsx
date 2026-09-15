@@ -14,6 +14,7 @@ import { Sparkles, Compass, CheckCircle2, AlertTriangle, ArrowRight } from 'luci
 import api from '../api/client';
 import type { UserConstraints, DecisionResult, ApiResponse } from '../types/decision.types';
 import { useDecisionStore } from '../store/decisionStore';
+import { useAuthStore } from '../store/authStore';
 
 export function DashboardPage() {
   const {
@@ -31,9 +32,13 @@ export function DashboardPage() {
     setOutcomeOpp,
   } = useDecisionStore();
 
+  const user = useAuthStore((s) => s.user);
+
   const [activeConstraints, setActiveConstraints] = useState<UserConstraints>({
-    city: 'Silchar',
-    state: 'Assam',
+    // Real profile location when available — NO hardcoded default city.
+    // An empty city means "user must choose a location" and skips auto-evaluation.
+    city: user?.city ?? '',
+    state: user?.state ?? '',
     targetDailyIncome: 800,
     availableHoursPerDay: 4,
     availableCapital: 0,
@@ -45,7 +50,12 @@ export function DashboardPage() {
 
   const cardsRef = useRef<HTMLDivElement>(null);
 
+  // Monotonic sequence guard: a slower, older evaluate request must never
+  // overwrite the decision state produced by a newer request.
+  const evalSeqRef = useRef(0);
+
   const handleEvaluate = async (constraints: UserConstraints) => {
+    const seq = ++evalSeqRef.current;
     setActiveConstraints(constraints);
     // Clear stale decision state immediately so old metadata is never displayed during or after constraint changes
     setDecision(null);
@@ -55,6 +65,7 @@ export function DashboardPage() {
 
     try {
       const res = await api.post<ApiResponse<DecisionResult>>('/decision/evaluate', constraints);
+      if (seq !== evalSeqRef.current) return; // stale response — a newer evaluation is in flight
       if (res.data.success && res.data.data) {
         setDecision(res.data.data);
 
@@ -67,15 +78,20 @@ export function DashboardPage() {
         }, 50);
       }
     } catch (err) {
-      console.error('Decision evaluation failed:', err);
+      if (seq === evalSeqRef.current) {
+        console.error('Decision evaluation failed:', err);
+      }
     } finally {
-      setEvaluating(false);
+      if (seq === evalSeqRef.current) {
+        setEvaluating(false);
+      }
     }
   };
 
-  // Initial load: trigger default evaluation on mount if empty
+  // Initial load: evaluate the user's profile location once. If the profile has
+  // no saved city yet, show the empty state and let the user pick a location.
   useEffect(() => {
-    if (!decision) {
+    if (!decision && activeConstraints.city && activeConstraints.state) {
       handleEvaluate(activeConstraints);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

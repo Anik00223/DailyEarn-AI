@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, CheckSquare, Send, CheckCircle2 } from 'lucide-react';
 import type { EvaluatedOpportunity } from '../../types/decision.types';
 import api from '../../api/client';
+import { useDecisionStore } from '../../store/decisionStore';
 
 interface OutcomeFeedbackModalProps {
   item: EvaluatedOpportunity;
@@ -11,6 +12,9 @@ interface OutcomeFeedbackModalProps {
 export function OutcomeFeedbackModal({ item, onClose }: OutcomeFeedbackModalProps) {
   const opp = item.opportunity;
   const fin = item.financials;
+  // Report the REAL evaluated location — never a hardcoded default city.
+  const city = useDecisionStore((s) => s.decision?.constraints.city ?? '');
+  const state = useDecisionStore((s) => s.decision?.constraints.state ?? '');
 
   const [attempted, setAttempted] = useState(true);
   const [firstStepCompleted, setFirstStepCompleted] = useState(true);
@@ -28,7 +32,8 @@ export function OutcomeFeedbackModal({ item, onClose }: OutcomeFeedbackModalProp
     try {
       await api.post('/decision/outcomes', {
         opportunitySlug: opp.slug,
-        city: 'Silchar', // default or current city
+        city,
+        state,
         attempted,
         firstStepCompleted,
         predictedDailyIncome: fin.netDaily,

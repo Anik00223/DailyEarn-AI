@@ -25,6 +25,8 @@ export interface Idea {
   gettingStartedSteps: string[] | null;
   earningsBreakdown: string;
   citySpecificTip: string;
+  city: string | null;
+  state: string | null;
   isSaved: boolean | null;
   isDismissed: boolean | null;
   generatedAt: string | null;

@@ -27,7 +27,7 @@ REQUIREMENTS FOR EACH IDEA:
 1. Achievable starting TODAY with zero or near-zero upfront cost
 2. Must name one REAL Indian platform: Meesho, Urban Company, Swiggy, Zepto, Blinkit, Dunzo, Porter, Byju's, Vedantu, Fiverr, Upwork, OLX, Quikr, WhatsApp Business, Instagram Shop, Moj, ShareChat, Rapido, etc.
 3. Earnings must be in ₹ INR with math: "15 orders × ₹40 = ₹600/day"
-4. Must specifically reference ${params.city} — local area, college, market, or landmark
+4. GEOGRAPHY IS CLOSED-WORLD: reference "${params.city}" naturally by name only. Do NOT invent or guess specific local landmarks, colleges, markets, neighbourhoods, or area names — you do not have verified knowledge of ${params.city}'s localities. Use generic phrasing like "your area in ${params.city}" instead.
 5. effort_level must be brutally honest (low/medium/high)
 6. Must be meaningfully different from any previously shown ideas
 
@@ -45,7 +45,7 @@ RESPOND ONLY WITH THIS JSON STRUCTURE — NO MARKDOWN, NO EXPLANATION:
       "platform_url": "https://real-url.com",
       "getting_started_steps": ["Step 1", "Step 2", "Step 3"],
       "earnings_breakdown": "X units × ₹Y margin = ₹Z/day",
-      "city_specific_tip": "Specific tip for ${params.city}"
+      "city_specific_tip": "Specific tip for ${params.city}. Only reference ${params.city} by name — no invented landmarks or locality names."
     }
   ]
 }`;

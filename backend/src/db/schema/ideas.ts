@@ -27,6 +27,10 @@ export const ideas = pgTable('ideas', {
   gettingStartedSteps: text('getting_started_steps').array().default([]),
   earningsBreakdown: text('earnings_breakdown').notNull(),
   citySpecificTip: text('city_specific_tip').notNull(),
+  // Location attribution — which city/state the idea was generated for.
+  // Nullable: rows created before this column existed have no location.
+  city: varchar('city', { length: 100 }),
+  state: varchar('state', { length: 100 }),
   isSaved: boolean('is_saved').default(false),
   isDismissed: boolean('is_dismissed').default(false),
   generationTimestamp: timestamp('generation_timestamp').notNull(),
@@ -38,6 +42,7 @@ export const ideas = pgTable('ideas', {
   isSavedIdx: index('ideas_is_saved_idx').on(table.isSaved),
   isDismissedIdx: index('ideas_is_dismissed_idx').on(table.isDismissed),
   userGeneratedIdx: index('ideas_user_generated_idx').on(table.userId, table.generatedAt),
+  userLocationIdx: index('ideas_user_location_idx').on(table.userId, table.city),
 }));
 
 export type Idea = typeof ideas.$inferSelect;

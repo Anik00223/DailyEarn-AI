@@ -163,7 +163,7 @@ export function GenerateBar({ onEvaluate, isEvaluating, initialConstraints }: Ge
                 onFocus={() => {
                   if (suggestions.length > 0) setShowSuggestions(true);
                 }}
-                placeholder="City (e.g. Silchar, Indore)"
+                placeholder="City (e.g. Indore, Patna)"
                 style={{
                   width: '100%',
                   fontSize: '0.88rem',

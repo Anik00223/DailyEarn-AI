@@ -15,6 +15,13 @@
       "when": 1788468856008,
       "tag": "0001_known_flatman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789494889399,
+      "tag": "0002_dapper_gorgon",
+      "breakpoints": true
     }
   ]
 }
