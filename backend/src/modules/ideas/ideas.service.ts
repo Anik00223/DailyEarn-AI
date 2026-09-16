@@ -3,6 +3,7 @@ import { db } from '../../db/index';
 import { ideas, analytics } from '../../db/schema/index';
 import { createError } from '../../middleware/errorHandler';
 import { buildIdeaPrompt, generateIdeaHash } from './ideas.prompt';
+import { buildDeterministicIdeas } from './ideas.fallback';
 import { geminiResponseSchema } from './ideas.schema';
 import type { GenerateIdeasInput, GeminiIdea } from './ideas.schema';
 import { getIdeaQueue } from '../../queues/ideaGeneration.queue';
@@ -10,6 +11,30 @@ import { orchestrateAiRequest } from '../../services/aiOrchestrator';
 import { redisGet, redisSet } from '../../config/redis';
 
 const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6 hours
+const FALLBACK_CACHE_TTL_SECONDS = 30 * 60; // fallback results are retried against AI sooner
+
+/**
+ * Parses and validates a raw provider response. Malformed or truncated
+ * responses are classified as RECOVERABLE provider failures: this returns
+ * null instead of throwing, so the caller can retry or use the deterministic
+ * fallback rather than surfacing a 5xx.
+ */
+function tryParseAiIdeas(raw: string): GeminiIdea[] | null {
+  try {
+    let cleanedResponse = raw.trim();
+    if (cleanedResponse.startsWith('```')) {
+      cleanedResponse = cleanedResponse.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+    const jsonResponse = JSON.parse(cleanedResponse);
+    return geminiResponseSchema.parse(jsonResponse).ideas;
+  } catch (error) {
+    console.warn(
+      '[Ideas] AI response failed parse/validation (recoverable):',
+      error instanceof Error ? error.message : error
+    );
+    return null;
+  }
+}
 
 export async function generateIdeas(
   userId: string,
@@ -55,7 +80,7 @@ export async function generateIdeas(
 
   // 4. Queue a generation job when Redis/Bull is up; otherwise generate
   // in-process (no ioredis clients are ever created in degraded mode).
-  let rawResponse: string;
+  let rawResponse: string | null = null;
   const ideaQueue = getIdeaQueue();
   if (ideaQueue) {
     try {
@@ -63,50 +88,53 @@ export async function generateIdeas(
       const result = (await job.finished()) as { rawResponse: string };
       rawResponse = result.rawResponse;
     } catch (queueError) {
+      // Queue failure is recoverable — direct orchestration below still serves
+      // the request; a transient AI failure must never surface as a 5xx.
       console.warn(
         '[Ideas] Bull queue execution failed, falling back to direct AI generation:',
         queueError instanceof Error ? queueError.message : queueError
       );
-      try {
-        const orchestration = await orchestrateAiRequest(prompt);
-        if (!orchestration.content) {
-          throw new Error(`AI generation failed on all providers (${orchestration.reason})`);
-        }
-        rawResponse = orchestration.content;
-      } catch (aiError) {
-        const message = aiError instanceof Error ? aiError.message : 'Unknown error';
-        throw createError(502, 'IDEA_GENERATION_FAILED', `AI generation failed: ${message}`);
-      }
-    }
-  } else {
-    try {
-      const orchestration = await orchestrateAiRequest(prompt);
-      if (!orchestration.content) {
-        throw new Error(`AI generation failed on all providers (${orchestration.reason})`);
-      }
-      rawResponse = orchestration.content;
-    } catch (aiError) {
-      const message = aiError instanceof Error ? aiError.message : 'Unknown error';
-      throw createError(502, 'IDEA_GENERATION_FAILED', `AI generation failed: ${message}`);
+      rawResponse = null;
     }
   }
 
-  // 5. Parse response (guaranteed to succeed and validate due to validator hook)
-  let parsedIdeas: GeminiIdea[];
-  try {
-    let cleanedResponse = rawResponse.trim();
-    if (cleanedResponse.startsWith('```')) {
-      cleanedResponse = cleanedResponse
-        .replace(/^```(?:json)?\n?/, '')
-        .replace(/\n?```$/, '');
+  // 5. Resilient generation. Provider timeout / 429 / network failure /
+  // circuit-open / malformed response are ALL recoverable: retry once with
+  // backoff (same prompt, so in-flight coalescing still dedupes), then serve
+  // human-verified catalog ideas via the deterministic fallback. 5xx is
+  // reserved for genuine application failures (e.g. database errors, which
+  // still propagate naturally through the error handler).
+  const parsedFromRaw = rawResponse ? tryParseAiIdeas(rawResponse) : null;
+  const MAX_AI_ATTEMPTS = 2;
+  const RETRY_DELAY_MS = 1500;
+  let parsedIdeas: GeminiIdea[] | null = parsedFromRaw;
+  let deterministicFallback = !parsedFromRaw && Boolean(rawResponse);
+  for (let attempt = 1; attempt <= MAX_AI_ATTEMPTS && !parsedIdeas; attempt++) {
+    if (attempt > 1) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
     }
+    const orchestration = await orchestrateAiRequest(prompt);
+    if (!orchestration.content) {
+      // Recoverable AI-provider failure (timeout / rate_limited / circuit_open /
+      // unavailable / fallback). Retry, then fall back — never 5xx.
+      console.warn(
+        `[Ideas] AI attempt ${attempt}/${MAX_AI_ATTEMPTS} unavailable (provider=${orchestration.provider}, reason=${orchestration.reason}) — recoverable provider failure`
+      );
+      continue;
+    }
+    parsedIdeas = tryParseAiIdeas(orchestration.content);
+    if (!parsedIdeas) {
+      // Malformed provider response — recoverable; retry or fall back.
+      console.warn(`[Ideas] AI attempt ${attempt}/${MAX_AI_ATTEMPTS} returned a malformed response — recoverable`);
+    }
+  }
 
-    const jsonResponse = JSON.parse(cleanedResponse);
-    const validated = geminiResponseSchema.parse(jsonResponse);
-    parsedIdeas = validated.ideas;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Parse error';
-    throw createError(502, 'IDEA_GENERATION_FAILED', `Failed to parse AI response: ${message}`);
+  if (!parsedIdeas) {
+    parsedIdeas = buildDeterministicIdeas(params);
+    deterministicFallback = true;
+    console.warn(
+      '[Ideas] All AI provider attempts failed or were malformed — serving human-verified catalog ideas (deterministic fallback, non-5xx)'
+    );
   }
 
   // 6. Save ideas to database
@@ -149,10 +177,15 @@ export async function generateIdeas(
     }
   }
 
-  // 7. Cache result in Redis for 6 hours
+  // 7. Cache result in Redis for 6 hours (30 min for fallback results so the
+  // next identical request gets a fresh chance at real AI generation)
   if (savedIdeas.length > 0) {
     try {
-      await redisSet(cacheKey, JSON.stringify(savedIdeas), CACHE_TTL_SECONDS);
+      await redisSet(
+        cacheKey,
+        JSON.stringify(savedIdeas),
+        deterministicFallback ? FALLBACK_CACHE_TTL_SECONDS : CACHE_TTL_SECONDS
+      );
     } catch {
       // Non-critical — continue even if caching fails
     }
@@ -168,6 +201,7 @@ export async function generateIdeas(
       skills: params.skills,
       count: savedIdeas.length,
       cached: false,
+      provider: deterministicFallback ? 'deterministic' : 'ai',
     },
   });
 
