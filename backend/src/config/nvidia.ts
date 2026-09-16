@@ -266,7 +266,10 @@ async function executeNvidiaRequest(
           model: env.NVIDIA_MODEL,
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.5,
-          max_tokens: 256,
+          // 256 was far too low: structured idea-generation JSON (~5 detailed
+          // ideas) regularly exceeds 1000 chars and got truncated mid-string,
+          // guaranteeing parse failures whenever NVIDIA served as failover.
+          max_tokens: 2048,
         }),
         signal: controller.signal,
       });
