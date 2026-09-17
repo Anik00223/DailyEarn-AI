@@ -37,11 +37,40 @@ export const FeasibilityGauge = memo(function FeasibilityGauge({
           strokeDashoffset={GAUGE_CIRC * (1 - Math.min(1, ratio))}
           style={{ filter: `drop-shadow(0 0 6px ${color})` }}
         />
+        {/* Readout lives INSIDE the SVG so it shares the arc's exact coordinate
+            space — it can never drift outside the semicircle at any viewport.
+            Arc circle center: (70, 70); percentage baseline sits ~35% of the
+            radius above the center (and is sized so even "100%" clears the
+            arc's inner stroke edge). */}
+        <text
+          x={70}
+          y={70 - GAUGE_R * 0.35}
+          textAnchor="middle"
+          fill={color}
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontWeight: 800,
+            fontSize: 23,
+            letterSpacing: '-0.04em',
+          }}
+        >
+          {pct}%
+        </text>
+        <text
+          x={70}
+          y={63}
+          textAnchor="middle"
+          fill="var(--cine-text-3)"
+          style={{
+            fontFamily: 'var(--font-label)',
+            fontWeight: 700,
+            fontSize: 9.5,
+            letterSpacing: '0.19em',
+          }}
+        >
+          OF TARGET
+        </text>
       </svg>
-      <div className="cine-gauge__readout">
-        <span className="cine-kpi__value" style={{ color }}>{pct}%</span>
-        <span className="cine-label cine-label--micro">of target</span>
-      </div>
       <span
         className="cine-label cine-label--micro"
         style={{ color, marginTop: 6 }}

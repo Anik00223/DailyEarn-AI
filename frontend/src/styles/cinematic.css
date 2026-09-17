@@ -585,8 +585,6 @@
   stroke-linecap: round;
   will-change: stroke-dashoffset;
 }
-
-.cine-gauge__readout { position: absolute; text-align: center; }
 /* ─ OPPORTUNITY PATHS (stage 4) ────────────────────────────────────────── */
 .cine-path {
   display: grid;
