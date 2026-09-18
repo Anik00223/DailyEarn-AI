@@ -117,6 +117,10 @@ export async function evaluateDecision(
   userId: string | undefined,
   input: EvaluateDecisionInput
 ): Promise<DecisionResult> {
+  // NOTE: diagnostic simulation flags ride ALONGSIDE the user constraints —
+  // they are read from `input` directly (NOT from the stripped `constraints`
+  // object) so enabling them can never leak into persisted constraints or
+  // analytics. validate() keeps them on req.body; constraints stay pure.
   const constraints: UserConstraints = {
     city: input.city.trim(),
     state: input.state.trim(),
@@ -178,9 +182,13 @@ export async function evaluateDecision(
 
   try {
     const prompt = buildDecisionEnrichmentPrompt(constraints, topOpps, feasibility);
+    // Diagnostic flags are read from the RAW input — `constraints` intentionally
+    // drops them (see note above), so `(constraints as any)` would ALWAYS be
+    // undefined here and forced-failure drills would silently test the wrong
+    // path (live Groq instead of NVIDIA/deterministic). Regression-covered.
     const orchestration = await orchestrateAiRequest(prompt, undefined, {
-      forceGroqFailure: (constraints as any).testSimulateGroqFailure,
-      forceNvidiaFailure: (constraints as any).testSimulateNvidiaFailure,
+      forceGroqFailure: input.testSimulateGroqFailure,
+      forceNvidiaFailure: input.testSimulateNvidiaFailure,
     });
 
     if (orchestration.content) {

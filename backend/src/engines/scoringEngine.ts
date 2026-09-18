@@ -51,9 +51,21 @@ export function scoreOpportunity(
   }
 
   // 2. Location Fit (0 - 100)
+  // Canonical metro alias map: user input spellings must resolve to the same
+  // tier-1 identity. 'bangalore' is the common English spelling of Bengaluru.
   let locationFit = 85;
+  const normalizedCity = constraints.city.toLowerCase().trim();
+  const metroAliases: Record<string, string> = {
+    bangalore: 'bengaluru',
+    bengaluru: 'bengaluru',
+    bombay: 'mumbai',
+    madras: 'chennai',
+    calcutta: 'kolkata',
+    poona: 'pune',
+  };
+  const canonicalCity = metroAliases[normalizedCity] || normalizedCity;
   const isTier1City = ['mumbai', 'delhi', 'bengaluru', 'hyderabad', 'chennai', 'kolkata', 'pune', 'ahmedabad'].includes(
-    constraints.city.toLowerCase().trim()
+    canonicalCity
   );
   if (!isTier1City && opp.supportedLocationTiers.includes('tier3')) {
     locationFit = 95;

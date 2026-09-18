@@ -48,6 +48,10 @@ vi.mock('../../db/index', () => ({
 
 import { evaluateDecision, recalculateSimulator, getDecisionAnalytics, sanitizeAiRationale } from './decision.service';
 import { isQualitativeTextOnly, aiEnrichmentResponseSchema } from './decision.schema';
+import { VERIFIED_OPPORTUNITIES_SEED } from '../../db/seeds/verifiedOpportunities';
+import { buildDecisionEnrichmentPrompt } from './decision.prompt';
+import { scoreOpportunity } from '../../engines/scoringEngine';
+import { calculateFinancialModel } from '../../engines/incomeEngine';
 
 describe('decision.service', () => {
   it('should evaluate Silchar Teaching case study with 4 hours as FEASIBLE', async () => {
@@ -258,5 +262,119 @@ describe('decision.service', () => {
     expect(top2.financials.expectedUnitsPerDay).toBeGreaterThan(0);
     expect(run2.constraints.availableHoursPerDay).toBe(6);
     expect(run2.constraints.skills).toContain('Driving & Delivery');
+  });
+
+  describe('location-awareness — city/state must change selection inputs, never wording only', () => {
+    const teachingProfile = {
+      targetDailyIncome: 800,
+      availableHoursPerDay: 4,
+      availableCapital: 0,
+      hasVehicle: false,
+      experienceLevel: 'beginner' as const,
+      skills: ['Teaching'],
+      language: 'en' as const,
+    };
+
+    it('LOCATION-1: request city/state echoes exactly in response constraints (no stale location)', async () => {
+      for (const loc of [
+        { city: 'Silchar', state: 'Assam' },
+        { city: 'Guwahati', state: 'Assam' },
+        { city: 'Bangalore', state: 'Karnataka' },
+        { city: 'Indore', state: 'Madhya Pradesh' },
+      ]) {
+        const run = await evaluateDecision(undefined, { ...teachingProfile, ...loc });
+        expect(run.constraints.city).toBe(loc.city);
+        expect(run.constraints.state).toBe(loc.state);
+        // Every rendered tip must reference the CURRENT city by name
+        for (const rec of run.recommendations) {
+          expect(rec.cityTip).toContain(loc.city);
+        }
+      }
+    });
+
+    it('LOCATION-2: identical profile in different cities yields identical deterministic selection (same verified data => same slugs+scores)', async () => {
+      // The verified catalog has NO city-level demand facts (supportedCities is
+      // empty for every entry), so the deterministic selector MUST NOT pretend
+      // differentiation exists. City changes wording/context only — selection
+      // stays stable. Any future city-level dataset must update this test.
+      const runs: Array<Awaited<ReturnType<typeof evaluateDecision>>> = [];
+      for (const loc of [
+        { city: 'Silchar', state: 'Assam' },
+        { city: 'Guwahati', state: 'Assam' },
+        { city: 'Indore', state: 'Madhya Pradesh' },
+      ]) {
+        runs.push(await evaluateDecision(undefined, { ...teachingProfile, ...loc }));
+      }
+      const sig = (r: typeof runs[number]) =>
+        r.recommendations.map((x) => `${x.opportunity.slug}:${x.score}`).join('|');
+      expect(sig(runs[1])).toBe(sig(runs[0]));
+      expect(sig(runs[2])).toBe(sig(runs[0]));
+    });
+
+    it('LOCATION-3: metro alias "Bangalore" resolves to tier-1 (same locationFit as "Bengaluru")', async () => {
+      const tutor = VERIFIED_OPPORTUNITIES_SEED.find((o) => o.slug === 'local-home-tutor-school')!;
+      const fin = (city: string) =>
+        calculateFinancialModel(tutor, {
+          city, state: 'Karnataka', targetDailyIncome: 800, availableHoursPerDay: 4,
+          availableCapital: 0, hasVehicle: false, experienceLevel: 'beginner', skills: ['Teaching'],
+        });
+      const locFor = (city: string) =>
+        scoreOpportunity(tutor, {
+          city, state: 'Karnataka', targetDailyIncome: 800, availableHoursPerDay: 4,
+          availableCapital: 0, hasVehicle: false, experienceLevel: 'beginner', skills: ['Teaching'],
+        }, fin(city)).locationFit;
+      expect(locFor('Bangalore')).toBe(locFor('Bengaluru'));
+      expect(locFor('Mumbai')).toBe(92); // canonical tier-1 reference
+    });
+
+    it('LOCATION-4: tier-coverage branch is city-sensitive (penalty path exists for non-metro, tier-restricted catalog entries)', async () => {
+      // Porter's live catalog entry is ['tier1','tier2'] — the penalty branch
+      // requires an entry with NEITHER tier2 NOR tier3, so Porter itself stays
+      // at the default 85 in Silchar (verified live: locFit=85). What this test
+      // locks is that the BRANCH is reachable and city-labeled when the data
+      // supports it — using a synthetic tier1-only entry, no catalog edits.
+      const porter = VERIFIED_OPPORTUNITIES_SEED.find((o) => o.slug === 'porter-delivery-two-wheeler')!;
+      const tier1Only = { ...porter, supportedLocationTiers: ['tier1'] };
+      const mk = (city: string, state: string) => ({
+        city, state, targetDailyIncome: 900, availableHoursPerDay: 6, availableCapital: 1000,
+        hasVehicle: true, vehicleType: 'motorcycle' as const, experienceLevel: 'intermediate' as const,
+        skills: ['Driving', 'Delivery'],
+      });
+      const inSilchar = scoreOpportunity(tier1Only, mk('Silchar', 'Assam') as any, calculateFinancialModel(tier1Only, mk('Silchar', 'Assam') as any));
+      const inMumbai = scoreOpportunity(tier1Only, mk('Mumbai', 'Maharashtra') as any, calculateFinancialModel(tier1Only, mk('Mumbai', 'Maharashtra') as any));
+      expect(inSilchar.locationFit).toBe(30);
+      expect(inSilchar.negativeDrivers.join(' ')).toContain('Silchar');
+      // Metro keeps default (no penalty): proves the branch is city-sensitive, not dead code
+      expect(inMumbai.locationFit).toBe(85);
+      // And the REAL Porter entry is honestly documented: no fake penalty
+      const realPorter = scoreOpportunity(porter, mk('Silchar', 'Assam') as any, calculateFinancialModel(porter, mk('Silchar', 'Assam') as any));
+      expect(realPorter.locationFit).toBe(85);
+    });
+
+    it('LOCATION-5: closed-world prompt — every city gets the inference prefix and zero invented localities', async () => {
+      const tutor = VERIFIED_OPPORTUNITIES_SEED.find((o) => o.slug === 'local-home-tutor-school')!;
+      const fin = calculateFinancialModel(tutor, {
+        city: 'Silchar', state: 'Assam', targetDailyIncome: 800, availableHoursPerDay: 4,
+        availableCapital: 0, hasVehicle: false, experienceLevel: 'beginner', skills: ['Teaching'],
+      });
+      const scored = scoreOpportunity(tutor, {
+        city: 'Silchar', state: 'Assam', targetDailyIncome: 800, availableHoursPerDay: 4,
+        availableCapital: 0, hasVehicle: false, experienceLevel: 'beginner', skills: ['Teaching'],
+      }, fin);
+      for (const loc of [
+        { city: 'Silchar', state: 'Assam' },
+        { city: 'Guwahati', state: 'Assam' },
+        { city: 'Bangalore', state: 'Karnataka' },
+        { city: 'Indore', state: 'Madhya Pradesh' },
+      ]) {
+        const prompt = buildDecisionEnrichmentPrompt(
+          { ...teachingProfile, ...loc }, [{ opportunity: tutor, financials: fin, scoring: scored, confidence: { confidencePercent: 80, positiveDrivers: [], riskFactors: [] } } as any],
+          { status: 'FEASIBLE', headline: 'ok', explanation: 'ok', realisticCeilingMin: 1, realisticCeilingMax: 2, targetGap: 0, requiredChanges: [] } as any
+        );
+        expect(prompt).toContain('CLOSED-WORLD GEOGRAPHY (STRICT');
+        expect(prompt).toContain('MUST begin with the exact prefix "General model inference: "');
+        expect(prompt).toContain(loc.city);
+      }
+    });
   });
 });
