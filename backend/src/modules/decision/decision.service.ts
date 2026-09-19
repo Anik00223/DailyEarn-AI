@@ -9,7 +9,7 @@ import { calculateConfidence } from '../../engines/confidenceEngine';
 import { optimizeIncomeMix } from '../../engines/incomeMixOptimizer';
 import { analyzeTargetGap } from '../../engines/targetGapEngine';
 import { generate7DayExecutionPlan } from '../../engines/executionPlanEngine';
-import { buildDecisionEnrichmentPrompt } from './decision.prompt';
+import { buildDecisionEnrichmentPrompt, collapseInferencePrefixes } from './decision.prompt';
 import {
   resolveLocationIntelligence,
   type LocationIntelligence,
@@ -221,7 +221,9 @@ export async function evaluateDecision(
             for (const tipItem of validatedAi.data.tips) {
               const match = topOpps.find((o) => o.opportunity.slug === tipItem.slug);
               if (match) {
-                match.cityTip = tipItem.city_specific_tip;
+                // Normalize echoed duplicates of the required inference prefix
+                // (the model occasionally repeats it — live-observed defect).
+                match.cityTip = collapseInferencePrefixes(tipItem.city_specific_tip);
               }
             }
           }

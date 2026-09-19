@@ -40,6 +40,23 @@ function renderVerifiedLocationBlock(intel: LocationIntelligence): string {
   return lines.join('\n');
 }
 
+/**
+ * Collapse duplicated inference prefixes ("General model inference: General
+ * model inference: ...") that the model occasionally echoes from the prompt
+ * example. The tip must still BEGIN with the exact single prefix required by
+ * the closed-world contract; anything else is normalized.
+ */
+export function collapseInferencePrefixes(tip: string): string {
+  const PREFIX = 'General model inference: ';
+  let t = (tip || '').trim();
+  if (!t.startsWith(PREFIX)) return t;
+  let rest = t.slice(PREFIX.length);
+  while (rest.startsWith(PREFIX)) {
+    rest = rest.slice(PREFIX.length);
+  }
+  return PREFIX + rest.trim();
+}
+
 export function buildDecisionEnrichmentPrompt(
   constraints: UserConstraints,
   topOpps: EvaluatedOpportunity[],
