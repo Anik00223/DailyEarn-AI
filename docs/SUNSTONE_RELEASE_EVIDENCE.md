@@ -1,8 +1,24 @@
 # DailyEarn AI — Sunstone Release Evidence (Verified Facts Only)
 
-> Every number below was **measured** during the final release audit (2026-09-19, commit
-> `17be6e8` unless noted). Nothing on this page is aspirational. Where a claim could not be
-> verified, it is explicitly marked `NOT_VERIFIED`.
+> Every number below was **measured** during the final release audit (2026-09-19, runtime
+> commit `17be6e8` unless noted; final git HEAD `48bb6a8` is documentation-only relative to
+> this runtime). Nothing on this page is aspirational. Where a claim could not be verified,
+> it is explicitly marked `NOT_VERIFIED`.
+
+## Release verdict at a glance (every value measured — details below)
+- **PROBLEM** → hyper-local income decisions in Bharat are fragmented and hard to evaluate
+  (platform fees, fuel, materials, vehicle needs, local platform availability).
+- **PRODUCT** → converts a user's target/location/context into a feasibility verdict,
+  deterministic net-income math, ranked verified opportunities, gap-closing levers, and a
+  7-day execution plan.
+- **ENGINEERING** → deterministic decision engine + evidence-gated location intelligence
+  (`locintel-v1`) + constrained AI reasoning + provider failover + hardened production
+  architecture.
+- **PROOF** → real production browser flow (PASS), live four-city regression, AI failover
+  with identical deterministic signatures, security probes (PASS), measured 250-user load
+  with **0% 5xx**, **98/98 backend tests**.
+- **HONEST LIMITS** → Redis not configured (shared cache unavailable), 100K concurrency
+  NOT_VERIFIED, NVIDIA failover latency ~11–15 s, five-city registry.
 
 ## Problem & Product
 - **Problem**: In Bharat's tier-2/3 informal economy, workers choose income activities on
@@ -83,6 +99,9 @@ Mix: 50% `/health/liveness`, 30% `/api/decision/catalog`, 20% `/api/decision/sim
 - **100K concurrent users: NOT_VERIFIED** (single Render instance; no staging cluster).
   *Architected for horizontal scaling toward 100K; verified up to 250 under controlled
   test conditions.*
+- **Replication run (final acceptance, identical staging and request mix):** 250 users →
+  **209.2 RPS**, p50 789 ms, p95 1559 ms, p99 1864 ms, 374/750 rate-limited (429),
+  **0 5xx** — consistent with the run above; the verified ceiling stands at 250 users.
 
 ## Real browser end-to-end (Phase 4 + 11, headless Chrome → dailyearn-ai-2.onrender.com)
 Fresh synthetic user journey, all steps verified against production:
@@ -149,6 +168,18 @@ Fresh synthetic user journey, all steps verified against production:
   rate limiting falls back to in-memory per-instance stores; AI cache is effectively
   disabled in production; auth revocation falls back to PostgreSQL. App remains fully
   functional (`/api/health` reports degraded, not down).
+
+## Evidence classification
+- **VERIFIED** (measured in production during this audit): every table and check above —
+  browser E2E journey, four-city location regression, AI failover with identical
+  deterministic signatures, security probes, request coalescing, 250-user load with 0% 5xx,
+  98/98 backend tests, database pool behavior.
+- **ARCHITECTURALLY SUPPORTED** (implemented and unit-tested, not production-measured at
+  scale): multi-instance horizontal scaling — stateless services, connection-budget
+  formula, Redis-ready cache/rate-limit/revocation design.
+- **NOT VERIFIED:** 100K concurrent users; production Redis behavior (`REDIS_URL` unset);
+  external APM/trace aggregation.
+- **KNOWN LIMITATIONS:** see below.
 
 ## Known limitations (honest)
 1. Redis not configured in production (above) → no cross-instance cache/rate-limit sharing.

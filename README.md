@@ -42,7 +42,7 @@ DailyEarn:
 1. FEASIBLE VERDICT: Yes, realistic ceiling is ₹650 – ₹950/day.
 2. DETERMINISTIC NET MATH: 2.4 sessions × ₹350/session = ₹840 gross − ₹0 fee − ₹40 commute = ₹800 net/day.
 3. CONFIDENCE SCORE: 88% based on verified local tutoring benchmarks in Assam.
-4. WHY RANKED #1: Match score 92/100 (high local student density, zero capital required, fits walking commute).
+4. WHY RANKED #1: Match score 91/100 (high local student density, zero capital required, fits walking commute).
 5. 7-DAY ACTION PLAN: Day 1 KYC & student radius map → Day 3 first trial session → Day 7 revenue review.
 6. TARGET SHORTFALL SIMULATOR: If available time drops to 2h/day, the engine recalculates to "POSSIBLE WITH CHANGES", quantifies the ₹350/day shortfall, and suggests a dual-stream Income Mix.
 ```
@@ -254,7 +254,7 @@ The repository is pre-configured for instant deployment on [Render](https://rend
 | `PORT` | Web port | Auto-provided by Render (server binds to `0.0.0.0`) |
 | `DATABASE_URL` | PostgreSQL connection string | From Render Managed PostgreSQL |
 | `REDIS_URL` | Redis connection string | From Render Redis or fallback |
-| `GROQ_API_KEY` | Groq LLaMA 3.3 API key | Secret key from groq.com |
+| `GROQ_API_KEY` | Groq API key (model selected via `GROQ_MODEL`) | Secret key from groq.com |
 | `JWT_ACCESS_SECRET` | 64+ char random secret for access tokens | Random string |
 | `JWT_REFRESH_SECRET` | 64+ char random secret for refresh tokens | Random string |
 | `BCRYPT_ROUNDS` | Password hashing work factor | `12` |
