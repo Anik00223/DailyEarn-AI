@@ -6,11 +6,21 @@
 [![Express](https://img.shields.io/badge/Express-5.0-black.svg)](https://expressjs.com/)
 [![Drizzle ORM](https://img.shields.io/badge/Drizzle-ORM-C5F74F.svg)](https://orm.drizzle.team/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)](https://www.postgresql.org/)
-[![Groq LLaMA 3.3](https://img.shields.io/badge/Groq-LLaMA_3.3_70B-orange.svg)](https://groq.com/)
-[![Vitest](https://img.shields.io/badge/Vitest-Passing-green.svg)](https://vitest.dev/)
+[![Groq](https://img.shields.io/badge/Groq-Primary_LLM-orange.svg)](https://groq.com/)
+[![NVIDIA](https://img.shields.io/badge/NVIDIA-Fallback_LLM-76B900.svg)](https://build.nvidia.com/)
+[![Vitest](https://img.shields.io/badge/Vitest-98/98_Passing-green.svg)](https://vitest.dev/)
 
 > **Product Positioning:**
 > *"An AI-powered hyper-local daily income decision engine for Bharat that converts a user's location, skills, available time, target income, and constraints into realistic, verified, math-backed, executable income plans."*
+
+## 🎬 Live Demo & Verified Engineering Evidence
+- **Live app**: https://dailyearn-ai-2.onrender.com · **API**: https://dailyearn-ai-1.onrender.com/api/health
+- **Measured release evidence** (production health, 4-city location regression, AI failover, controlled concurrency to 250 users, security probes, browser E2E): [`docs/SUNSTONE_RELEASE_EVIDENCE.md`](docs/SUNSTONE_RELEASE_EVIDENCE.md)
+
+## ⚠️ Known Limitations (honest)
+- Redis is not yet configured in production (Render Dashboard step) → in-memory fallbacks for rate limiting/cache; single-instance scope until then.
+- Verified under controlled load up to **250 concurrent users / 211 RPS / 0 5xx**; 100K-scale is architected for but NOT verified.
+- Location Intelligence registry currently covers 5 audited cities; other cities use an honest neutral fallback.
 
 ---
 
@@ -49,7 +59,7 @@ flowchart TD
     C --> D
     D --> E[Income Mix Optimizer]
     D --> F[Target Gap Analysis]
-    E & F & B & C --> G[Context-Constrained AI Synthesis\nGroq LLaMA 3.3 70B]
+    E & F & B & C --> G[Context-Constrained AI Synthesis\nGroq primary, NVIDIA fallback, deterministic last]
     G --> H[Final Decision Package\nVerified Recommendations + 7-Day Plan]
     H --> I[Real-Time Client Simulator]
     H --> J[Outcome Feedback & Calibration]
@@ -68,7 +78,7 @@ $$\text{Dynamic Fuel Cost} = \left(\frac{\text{Daily Travel Distance (km)}}{\tex
 ### 2. Explainable 8-Factor Heuristic Scoring (`scoringEngine.ts`)
 Transparent weighted scoring formula with configurable weights:
 - **Skill Fit (20%)**: Exact matches vs beginner-accessible tasks.
-- **Location Fit (15%)**: Pan-India vs Tier-2/3 localized demand.
+- **Location Fit (15%)**: Evidence-based Location Intelligence (`locintel-v1`) — verified city registry (OSM precision), catalog tier coverage, and platform restrictions feed `locationFit`; unknown cities stay neutral, never fabricated.
 - **Time Fit (15%)**: Strict penalty if required unit duration exceeds available working hours.
 - `FEASIBLE`: Best net earnings meet or exceed the target.
 - `POSSIBLE_WITH_CHANGES`: Achievable with +1 to 2 extra hours, dual-stream mixing, or price adjustment.
@@ -118,13 +128,15 @@ To demonstrate the engine's intelligence live to judges:
 ```
 ├── backend/
 │   ├── src/
-│   │   ├── config/            # env validation, database pool, Redis, Groq LLaMA
+│   │   ├── config/            # env validation, database pool, Redis, Groq/NVIDIA clients
 │   │   ├── db/
 │   │   │   ├── schema/        # users, opportunities, recommendations, executionPlans, userOutcomes
 │   │   │   └── seeds/         # 14 authentic verified Indian opportunities
 │   │   ├── engines/           # DETERMINISTIC CALCULATION ENGINES
 │   │   │   ├── incomeEngine.ts          # Gross, Net, Deductions, Ranges, Formulas
 │   │   │   ├── scoringEngine.ts         # Explainable 0-100 Multi-Factor Scoring
+│   │   │   ├── locationIntelligence.ts  # locintel-v1: verified city registry (OSM)
+│   │   │   ├── locationSignals.ts       # evidence-based locationFit (signals × relevance)
 │   │   │   ├── feasibilityEngine.ts     # FEASIBLE, POSSIBLE_WITH_CHANGES, UNLIKELY
 │   │   │   ├── confidenceEngine.ts      # Data freshness, positive drivers, risk factors
 │   │   │   ├── incomeMixOptimizer.ts    # Dual-stream compatible micro-work bundles
@@ -177,7 +189,7 @@ npm install
 cd backend
 npm test
 ```
-*Executes all 34 unit tests across auth, locations, deterministic engines, and decision service in < 900ms.*
+*Executes all 98 unit tests across auth, locations, deterministic engines, location intelligence, AI orchestration, and decision service.*
 
 ### 3. Verify TypeScript Typechecks
 ```bash
