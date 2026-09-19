@@ -36,12 +36,39 @@ async function runRenderProductionVerification() {
   const readinessData = (await readinessRes.json()) as any;
   console.log(`   Readiness Status: ${readinessData.status} (database: ${readinessData.database})\n`);
 
+  // 1b. OBTAIN QA AUTH TOKEN — /api/decision/test-ai is authenticated
+  // (anonymous live-provider access would be an AI-quota abuse vector).
+  let qaToken = '';
+  try {
+    const qaEmail = `deployverify_${Date.now()}@dailyearn-test.dev`;
+    await fetch(`${backendUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Deploy Verifier', email: qaEmail, password: 'QaTest123', city: 'Silchar', state: 'Assam' }),
+    });
+    const loginRes = await fetch(`${backendUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: qaEmail, password: 'QaTest123' }),
+    });
+    const loginBody = (await loginRes.json()) as any;
+    qaToken = loginBody?.data?.accessToken || loginBody?.data?.token || '';
+    console.log(`[STEP 1b] QA auth token obtained: ${qaToken ? 'YES' : 'NO (test-ai steps will 401)'}\n`);
+  } catch (err: any) {
+    console.error('   QA auth acquisition failed:', err.message);
+  }
+  const authHeaders = (): Record<string, string> => ({
+    'Content-Type': 'application/json',
+    ...(qaToken ? { Authorization: `Bearer ${qaToken}` } : {}),
+  });
+
+
   // 2. GROQ PRIMARY THROUGH LIVE BACKEND
   console.log('[STEP 2] Testing GROQ_PRIMARY via live Render backend...');
   try {
     const groqRes = await fetch(`${backendUrl}/api/decision/test-ai`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
         prompt: `Provide a concise 1-sentence qualitative rationale for a grocery delivery partner in Guwahati, Assam in valid JSON format: {"why_recommended": "High evening order volume in commercial hubs."}`,
         skipCache: true,
@@ -72,7 +99,7 @@ async function runRenderProductionVerification() {
   try {
     const nvidiaRes = await fetch(`${backendUrl}/api/decision/test-ai`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
         forceGroqFailure: true,
         skipCache: true,
@@ -202,14 +229,14 @@ async function runRenderProductionVerification() {
     const uniquePrompt = `Return JSON: {"why_recommended": "Live render cache test ${Date.now()}"}`;
     const firstCallRes = await fetch(`${backendUrl}/api/decision/test-ai`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ prompt: uniquePrompt, forceGroqFailure: true }),
     });
     const firstCallData = (await firstCallRes.json()) as any;
 
     const secondCallRes = await fetch(`${backendUrl}/api/decision/test-ai`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ prompt: uniquePrompt }),
     });
     const secondCallData = (await secondCallRes.json()) as any;
@@ -236,12 +263,12 @@ async function runRenderProductionVerification() {
     const [c1Res, c2Res] = await Promise.all([
       fetch(`${backendUrl}/api/decision/test-ai`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ prompt: coalescePrompt, forceGroqFailure: true }),
       }),
       fetch(`${backendUrl}/api/decision/test-ai`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ prompt: coalescePrompt, forceGroqFailure: true }),
       }),
     ]);

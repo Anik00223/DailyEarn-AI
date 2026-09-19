@@ -50,9 +50,12 @@ router.post(
   }
 );
 
-// POST /api/decision/test-ai (Safe test path for live AI provider diagnostics)
+// POST /api/decision/test-ai (AI provider diagnostics — AUTHENTICATED:
+// this route triggers live provider calls and must never be abusable
+// anonymously to drain AI quotas; regression-verified post-deploy).
 router.post(
   '/test-ai',
+  authenticate,
   decisionLimiter,
   async (req: Request, res: Response): Promise<void> => {
     try {
