@@ -52,6 +52,7 @@ import { VERIFIED_OPPORTUNITIES_SEED } from '../../db/seeds/verifiedOpportunitie
 import { buildDecisionEnrichmentPrompt } from './decision.prompt';
 import { scoreOpportunity } from '../../engines/scoringEngine';
 import { calculateFinancialModel } from '../../engines/incomeEngine';
+import { resolveLocationIntelligence } from '../../engines/locationSignals';
 
 describe('decision.service', () => {
   it('should evaluate Silchar Teaching case study with 4 hours as FEASIBLE', async () => {
@@ -311,7 +312,7 @@ describe('decision.service', () => {
       expect(sig(runs[2])).toBe(sig(runs[0]));
     });
 
-    it('LOCATION-3: metro alias "Bangalore" resolves to tier-1 (same locationFit as "Bengaluru")', async () => {
+    it('LOCATION-3: metro alias "Bangalore" resolves identically to "Bengaluru" (locintel-v1 evidence path)', async () => {
       const tutor = VERIFIED_OPPORTUNITIES_SEED.find((o) => o.slug === 'local-home-tutor-school')!;
       const fin = (city: string) =>
         calculateFinancialModel(tutor, {
@@ -323,32 +324,61 @@ describe('decision.service', () => {
           city, state: 'Karnataka', targetDailyIncome: 800, availableHoursPerDay: 4,
           availableCapital: 0, hasVehicle: false, experienceLevel: 'beginner', skills: ['Teaching'],
         }, fin(city)).locationFit;
+      // Both spellings canonicalize to 'bengaluru' — one registry record.
       expect(locFor('Bangalore')).toBe(locFor('Bengaluru'));
-      expect(locFor('Mumbai')).toBe(92); // canonical tier-1 reference
+      // locintel-v1 registry cities: 70 neutral base + residential signal
+      // (0.8 x 0.4 x 30 = +10); tier1 cities get no tier2/3 support bonus.
+      // The legacy tier-1 branch (92) no longer applies to registry cities.
+      expect(locFor('Bengaluru')).toBe(80);
+      expect(locFor('Mumbai')).toBe(80); // canonical tier-1 reference, same evidence
     });
 
-    it('LOCATION-4: tier-coverage branch is city-sensitive (penalty path exists for non-metro, tier-restricted catalog entries)', async () => {
-      // Porter's live catalog entry is ['tier1','tier2'] — the penalty branch
-      // requires an entry with NEITHER tier2 NOR tier3, so Porter itself stays
-      // at the default 85 in Silchar (verified live: locFit=85). What this test
-      // locks is that the BRANCH is reachable and city-labeled when the data
-      // supports it — using a synthetic tier1-only entry, no catalog edits.
+    it('LOCATION-4: tier-restricted platforms are evidence-penalized in tier-3 cities (locintel-v1)', async () => {
+      // Catalog evidence: Porter & Urban Company carry supportedLocationTiers
+      // ['tier1','tier2'] plus restrictions text explicitly excluding tier-3
+      // towns. The Silchar registry entry mirrors that evidence
+      // (tierRestrictedPlatforms), so a REAL penalty is the honest behavior —
+      // the old expectation (85, "no fake penalty") was written for the
+      // pre-locintel engine where no city facts existed at all.
       const porter = VERIFIED_OPPORTUNITIES_SEED.find((o) => o.slug === 'porter-delivery-two-wheeler')!;
-      const tier1Only = { ...porter, supportedLocationTiers: ['tier1'] };
+      const urbanCo = VERIFIED_OPPORTUNITIES_SEED.find((o) => o.slug === 'urban-company-salon-services')!;
+      const swiggy = VERIFIED_OPPORTUNITIES_SEED.find((o) => o.slug === 'swiggy-delivery-partner')!;
       const mk = (city: string, state: string) => ({
         city, state, targetDailyIncome: 900, availableHoursPerDay: 6, availableCapital: 1000,
         hasVehicle: true, vehicleType: 'motorcycle' as const, experienceLevel: 'intermediate' as const,
         skills: ['Driving', 'Delivery'],
       });
-      const inSilchar = scoreOpportunity(tier1Only, mk('Silchar', 'Assam') as any, calculateFinancialModel(tier1Only, mk('Silchar', 'Assam') as any));
-      const inMumbai = scoreOpportunity(tier1Only, mk('Mumbai', 'Maharashtra') as any, calculateFinancialModel(tier1Only, mk('Mumbai', 'Maharashtra') as any));
-      expect(inSilchar.locationFit).toBe(30);
-      expect(inSilchar.negativeDrivers.join(' ')).toContain('Silchar');
-      // Metro keeps default (no penalty): proves the branch is city-sensitive, not dead code
-      expect(inMumbai.locationFit).toBe(85);
-      // And the REAL Porter entry is honestly documented: no fake penalty
-      const realPorter = scoreOpportunity(porter, mk('Silchar', 'Assam') as any, calculateFinancialModel(porter, mk('Silchar', 'Assam') as any));
-      expect(realPorter.locationFit).toBe(85);
+      const inSilchar = (opp: typeof porter) =>
+        scoreOpportunity(opp, mk('Silchar', 'Assam') as any, calculateFinancialModel(opp, mk('Silchar', 'Assam') as any));
+      const inMumbai = (opp: typeof porter) =>
+        scoreOpportunity(opp, mk('Mumbai', 'Maharashtra') as any, calculateFinancialModel(opp, mk('Mumbai', 'Maharashtra') as any));
+
+      // REAL Porter in Silchar: 70 neutral + transport signal (+6)
+      // - platform restriction (-40); NO tier-3 support bonus because its
+      // catalog tiers are ['tier1','tier2'].
+      const porterSilchar = inSilchar(porter);
+      expect(porterSilchar.locationFit).toBe(36);
+      expect(porterSilchar.negativeDrivers.join(' ')).toContain('Porter');
+      expect(porterSilchar.negativeDrivers.join(' ')).toContain('locintel-v1');
+      // City-sensitivity: the same entry in tier-1 Mumbai has NO restriction
+      // signal (70 neutral base, nothing else applies).
+      expect(inMumbai(porter).locationFit).toBe(70);
+      // Urban Company (category 'services') is penalized too — the restriction
+      // check is platform-scoped and must NOT depend on the category's signal
+      // kinds: 70 + residential(+10) - 40 = 40.
+      expect(inSilchar(urbanCo).locationFit).toBe(40);
+      // A tier-3-supporting delivery entry instead GAINS in Silchar:
+      // 70 + transport(+6) + tier3 support(+8) = 84.
+      expect(inSilchar(swiggy).locationFit).toBe(84);
+      // Unknown city: legacy tier branches remain the documented fallback for
+      // unregistered cities (tier3-supporting entry => 95, city-labeled).
+      const unknown = scoreOpportunity(swiggy, mk('Jorhat', 'Assam') as any, calculateFinancialModel(swiggy, mk('Jorhat', 'Assam') as any));
+      expect(unknown.locationFit).toBe(95);
+      expect(unknown.negativeDrivers.join(' ')).toContain('Jorhat');
+      // ...while a tier1+tier2-only entry in an unknown city stays neutral 85
+      // (legacy default — no evidence to either reward or penalize).
+      const unknownPorter = scoreOpportunity(porter, mk('Jorhat', 'Assam') as any, calculateFinancialModel(porter, mk('Jorhat', 'Assam') as any));
+      expect(unknownPorter.locationFit).toBe(85);
     });
 
     it('LOCATION-5: closed-world prompt — every city gets the inference prefix and zero invented localities', async () => {
@@ -374,6 +404,28 @@ describe('decision.service', () => {
         expect(prompt).toContain('CLOSED-WORLD GEOGRAPHY (STRICT');
         expect(prompt).toContain('MUST begin with the exact prefix "General model inference: "');
         expect(prompt).toContain(loc.city);
+        expect(prompt).toContain('VERIFIED LOCATION INTELLIGENCE: NOT RESOLVED');
+
+        // PHASE 11: with resolved intel the prompt carries the structured,
+        // source-traced VERIFIED SIGNALS block as the only geography source.
+        const intel = resolveLocationIntelligence(loc.city, loc.state);
+        const promptWithIntel = buildDecisionEnrichmentPrompt(
+          { ...teachingProfile, ...loc }, [{ opportunity: tutor, financials: fin, scoring: scored, confidence: { confidencePercent: 80, positiveDrivers: [], riskFactors: [] } } as any],
+          { status: 'FEASIBLE', headline: 'ok', explanation: 'ok', realisticCeilingMin: 1, realisticCeilingMax: 2, targetGap: 0, requiredChanges: [] } as any,
+          intel
+        );
+        expect(promptWithIntel).toContain('CLOSED-WORLD GEOGRAPHY (STRICT');
+        expect(promptWithIntel).toContain('MUST begin with the exact prefix "General model inference: "');
+        expect(promptWithIntel).toContain(loc.city);
+        expect(promptWithIntel).toContain('VERIFIED LOCATION INTELLIGENCE (version locintel-v1)');
+        expect(promptWithIntel).toContain('Precision: CITY');
+        expect(promptWithIntel).toContain('retrieved 2026-09-19');
+        // Every signal in the block carries its own provenance stamp.
+        for (const sig of intel.signals) {
+          expect(promptWithIntel).toContain(`* ${sig.kind}=${sig.presence}`);
+        }
+        // The block itself forbids invention beyond the listed facts.
+        expect(promptWithIntel).toContain('Inventing anything beyond them');
       }
     });
   });

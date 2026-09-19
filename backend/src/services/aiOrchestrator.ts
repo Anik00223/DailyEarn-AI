@@ -3,6 +3,10 @@ import { generateContent, classifyError, getGroqMetrics } from '../config/groq';
 import { generateNvidiaContent, classifyNvidiaError, getNvidiaMetrics } from '../config/nvidia';
 import { env, isGroqConfigured, isNvidiaConfigured } from '../config/env';
 import { redisGet, redisSet } from '../config/redis';
+// PHASE 12: cache identity includes the location-intel engine version so any
+// registry/signal change (locintel-vN) invalidates previously cached AI text
+// even when the prompt text itself would hash identically.
+import { LOCATION_INTELLIGENCE_VERSION } from '../engines/locationIntelligence';
 
 export interface AiOrchestrationResult {
   content: string;
@@ -26,7 +30,8 @@ export async function orchestrateAiRequest(
 ): Promise<AiOrchestrationResult> {
   const startTime = Date.now();
   const promptHash = crypto.createHash('sha256').update(prompt.trim()).digest('hex');
-  const cacheKey = `ai:decision:${promptHash}`;
+  // PHASE 12: cache identity = engine version + prompt hash.
+  const cacheKey = `ai:decision:${LOCATION_INTELLIGENCE_VERSION}:${promptHash}`;
 
   // 1. Check Redis / In-Memory Cache (1 hour TTL)
   if (!options?.skipCache) {

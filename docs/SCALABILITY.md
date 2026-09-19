@@ -78,7 +78,7 @@ Every backend instance is completely stateless:
 2. **Shared Redis Layer**:
    - `ResilientRateLimitStore`: Synchronizes distributed IP/user rate-limiting across all instances.
    - `auth:revocation:<userId>`: Horizontally distributes logout revocation events across instances with fail-closed DB fallback.
-   - `ai:decision:<promptHash>`: Deduplicates and caches AI qualitative advice for 1 hour.
+   - `ai:decision:<locintelVersion>:<promptHash>`: Deduplicates and caches AI qualitative advice for 1 hour. The location-intelligence engine version (`locintel-v1`) is part of the cache identity so verified-signal changes bust stale AI text.
 3. **Graceful Fallback**: If Redis temporarily fails, instances gracefully fall back to local memory stores for rate limiting and query PostgreSQL for session revocation.
 
 ---

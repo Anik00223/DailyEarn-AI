@@ -1,5 +1,13 @@
 import type { SeedOpportunity } from '../db/seeds/verifiedOpportunities';
 import type { UserConstraints, FinancialModel, ScoringBreakdown, ScoringWeights } from './types';
+import {
+  resolveLocationIntelligence,
+  computeSignalLocationFit,
+  type LocationIntelligence,
+} from './locationSignals';
+
+export { resolveLocationIntelligence, computeSignalLocationFit };
+export type { LocationIntelligence };
 
 export const DEFAULT_SCORING_WEIGHTS: ScoringWeights = {
   skillFit: 0.20,
@@ -50,10 +58,24 @@ export function scoreOpportunity(
     }
   }
 
-  // 2. Location Fit (0 - 100)
-  // Canonical metro alias map: user input spellings must resolve to the same
-  // tier-1 identity. 'bangalore' is the common English spelling of Bengaluru.
-  let locationFit = 85;
+  // 2. Location Fit (0 - 100) — evidence-based (locationIntelligence v1).
+  // Canonical metro aliases resolve first ('bangalore' -> 'bengaluru').
+  // Verified signals x opportunity relevance x confidence; UNKNOWN stays
+  // neutral (70) and contributes exactly 0. Legacy tier branches preserved
+  // as fallback for cities without a registry entry.
+  const intel: LocationIntelligence = resolveLocationIntelligence(
+    constraints.city, constraints.state
+  );
+  let locationFit: number;
+  if (intel.context.precision !== 'unknown') {
+    const sig = computeSignalLocationFit(opp.category, intel, opp);
+    locationFit = sig.locationFit;
+    positiveDrivers.push(...sig.drivers.map((d) => `${d} [locintel-v1]`));
+    negativeDrivers.push(...sig.penalties.map((p) => `${p} [locintel-v1]`));
+  } else {
+    locationFit = 85;
+    negativeDrivers.push(`No verified location record for ${constraints.city} — neutral scoring applied [locintel-v1]`);
+  }
   const normalizedCity = constraints.city.toLowerCase().trim();
   const metroAliases: Record<string, string> = {
     bangalore: 'bengaluru',
@@ -67,15 +89,17 @@ export function scoreOpportunity(
   const isTier1City = ['mumbai', 'delhi', 'bengaluru', 'hyderabad', 'chennai', 'kolkata', 'pune', 'ahmedabad'].includes(
     canonicalCity
   );
-  if (!isTier1City && opp.supportedLocationTiers.includes('tier3')) {
-    locationFit = 95;
-    positiveDrivers.push(`Strong active local demand in Tier-2/3 market (${constraints.city})`);
-  } else if (!isTier1City && !opp.supportedLocationTiers.includes('tier2') && !opp.supportedLocationTiers.includes('tier3')) {
-    locationFit = 30;
-    negativeDrivers.push(`Platform has limited coverage in non-metro areas like ${constraints.city}`);
-  } else if (opp.supportedLocationTiers.includes('pan_india')) {
-    locationFit = 92;
-    positiveDrivers.push('Pan-India operational availability across all districts');
+  if (intel.context.precision === 'unknown') {
+    if (!isTier1City && opp.supportedLocationTiers.includes('tier3')) {
+      locationFit = 95;
+      positiveDrivers.push(`Strong active local demand in Tier-2/3 market (${constraints.city})`);
+    } else if (!isTier1City && !opp.supportedLocationTiers.includes('tier2') && !opp.supportedLocationTiers.includes('tier3')) {
+      locationFit = 30;
+      negativeDrivers.push(`Platform has limited coverage in non-metro areas like ${constraints.city}`);
+    } else if (opp.supportedLocationTiers.includes('pan_india')) {
+      locationFit = 92;
+      positiveDrivers.push('Pan-India operational availability across all districts');
+    }
   }
 
   // 3. Time Fit (0 - 100)

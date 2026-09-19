@@ -1,9 +1,50 @@
 import type { UserConstraints, EvaluatedOpportunity, FeasibilityVerdict } from '../../engines/types';
+import type { LocationIntelligence } from '../../engines/locationSignals';
+
+/**
+ * PHASE 11: the verified location-intelligence block is the ONLY geography the
+ * model may reference. Everything in it is deterministic, source-traced, and
+ * rendered at city precision — the model explains it, never extends it.
+ */
+function renderVerifiedLocationBlock(intel: LocationIntelligence): string {
+  const { context, signals, version } = intel;
+  const lines: string[] = [];
+  lines.push(`VERIFIED LOCATION INTELLIGENCE (version ${version}):`);
+  lines.push(
+    `- City: ${context.city}, ${context.state}, ${context.country}` +
+      (context.district ? ` (district: ${context.district})` : '')
+  );
+  lines.push(
+    `- Precision: ${context.precision.toUpperCase()} — verified to city level ONLY.` +
+      ' No street, colony, market, campus, or station-level knowledge exists anywhere in this system.'
+  );
+  lines.push(`- Source: ${context.source}; retrieved ${context.retrievedAt}`);
+  if (signals.length === 0) {
+    lines.push(
+      '- Verified signals: NONE. No verified local facts exist beyond the city/state name itself — do not describe or assume any demand characteristic for this city.'
+    );
+  } else {
+    lines.push('- Verified signals (the ONLY local facts you may reference):');
+    for (const s of signals) {
+      lines.push(
+        `  * ${s.kind}=${s.presence} (confidence ${s.confidence}) — ${s.detail ?? 'no detail'}` +
+          ` [source: ${s.source}; retrieved ${s.retrievedAt}]`
+      );
+    }
+  }
+  lines.push(
+    '- You may reference ONLY the signal facts listed above, stated generically at city level.' +
+      ' Inventing anything beyond them — roads, colonies, markets, campuses, stations, neighborhood names,' +
+      ' or demand claims not listed — is a failed response.'
+  );
+  return lines.join('\n');
+}
 
 export function buildDecisionEnrichmentPrompt(
   constraints: UserConstraints,
   topOpps: EvaluatedOpportunity[],
-  feasibility: FeasibilityVerdict
+  feasibility: FeasibilityVerdict,
+  locationIntelligence?: LocationIntelligence
 ): string {
   const oppSummaries = topOpps.map((e, idx) => ({
     index: idx + 1,
@@ -21,6 +62,12 @@ export function buildDecisionEnrichmentPrompt(
   // facts (supportedCities is empty for every entry). The model therefore has
   // no verified neighborhood names for ANY city — it must reference the city
   // by name only and prefix every tip with the inference disclosure.
+  // PHASE 11: the resolved location intelligence (context + verified signals)
+  // rides the prompt as the single authoritative geography source; everything
+  // beyond it remains closed-world.
+  const verifiedLocationBlock = locationIntelligence
+    ? renderVerifiedLocationBlock(locationIntelligence)
+    : 'VERIFIED LOCATION INTELLIGENCE: NOT RESOLVED — you know the city/state NAME ONLY and have zero verified local facts.';
   return `You are DailyEarn AI's hyper-local Bharat economic analyst.
 Your role is SOLELY to provide conversational explanation and localized nuance for a user in ${constraints.city}, ${constraints.state}, India.
 
@@ -51,6 +98,8 @@ CLOSED-WORLD GEOGRAPHY (STRICT — applies to EVERY city including metros):
 - State the operational advice only (where to find customers, how to start),
   never a geography fact.
 
+${verifiedLocationBlock}
+
 USER CONSTRAINTS:
 - City: ${constraints.city}, ${constraints.state}
 - Target: ₹${constraints.targetDailyIncome}/day
@@ -73,6 +122,9 @@ INSTRUCTIONS:
    - Reference ${constraints.city} by NAME ONLY (e.g. "your area in ${constraints.city}").
      NEVER name a specific road, colony, market, campus, college, mall, station, or
      neighborhood — verified local data at that granularity does not exist.
+   - You MAY ground a tip in a fact from the VERIFIED LOCATION INTELLIGENCE block
+     above (only those exact facts, never extended). Any tip content beyond that
+     block remains marked model inference by the prefix.
    - Give practical Tier-2/3 market operating advice (where to find customers, how to start).
 3. Language: Respond in ${constraints.language || 'en'}.
 

@@ -10,6 +10,10 @@ import { optimizeIncomeMix } from '../../engines/incomeMixOptimizer';
 import { analyzeTargetGap } from '../../engines/targetGapEngine';
 import { generate7DayExecutionPlan } from '../../engines/executionPlanEngine';
 import { buildDecisionEnrichmentPrompt } from './decision.prompt';
+import {
+  resolveLocationIntelligence,
+  type LocationIntelligence,
+} from '../../engines/locationSignals';
 import { orchestrateAiRequest } from '../../services/aiOrchestrator';
 import { generateContent, classifyError } from '../../config/groq';
 import { env, isGroqConfigured } from '../../config/env';
@@ -44,6 +48,8 @@ export interface DecisionResult {
   constraints: UserConstraints;
   primary7DayPlan: ReturnType<typeof generate7DayExecutionPlan> | null;
   aiStatus?: AiEnrichmentStatus;
+  /** Verified location context+signals that fed deterministic scoring (PHASE 10). */
+  locationIntelligence?: LocationIntelligence;
 }
 
 export function sanitizeAiRationale(
@@ -181,7 +187,11 @@ export async function evaluateDecision(
   };
 
   try {
-    const prompt = buildDecisionEnrichmentPrompt(constraints, topOpps, feasibility);
+    // PHASE 11: structured verified signals ride the prompt; the model may
+    // explain them but NEVER invent beyond them. Cache identity includes the
+    // intel version (PHASE 12) so signal changes bust stale AI text.
+    const locationIntelligence = resolveLocationIntelligence(constraints.city, constraints.state);
+    const prompt = buildDecisionEnrichmentPrompt(constraints, topOpps, feasibility, locationIntelligence);
     // Diagnostic flags are read from the RAW input — `constraints` intentionally
     // drops them (see note above), so `(constraints as any)` would ALWAYS be
     // undefined here and forced-failure drills would silently test the wrong
@@ -370,6 +380,10 @@ export async function evaluateDecision(
     constraints,
     primary7DayPlan,
     aiStatus,
+    // PHASE 10: expose verified context+signals so the UI can render honest
+    // hyper-local evidence (precision + signal list + source). AI text never
+    // overrides this — ranking was already fixed deterministically above.
+    locationIntelligence: resolveLocationIntelligence(constraints.city, constraints.state),
   };
 }
 
